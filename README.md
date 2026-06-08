@@ -68,3 +68,7 @@ python -m apps.cli.main run-tool check_guardrail --payload-json '{"action":"plac
 ## Claude Code 使用说明
 
 面向用户的完整协作手册见：[docs/CLAUDE_CODE_USER_GUIDE_ZH.md](docs/CLAUDE_CODE_USER_GUIDE_ZH.md)。
+
+## 流水线和存储策略
+
+策略研究、数据采集、策略验证三条流水线，以及 500GB SSD / 3TB HDD 的数据保留策略，见：[docs/PIPELINES_AND_STORAGE_ZH.md](docs/PIPELINES_AND_STORAGE_ZH.md)。
