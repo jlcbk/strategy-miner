@@ -1,0 +1,24 @@
+[storage]
+data_lake_root = "var/market-data"
+preferred_format = "parquet"
+
+[metadata]
+postgres_dsn = "postgresql://strategy_miner:strategy_miner@localhost:5432/strategy_miner"
+
+[queue]
+redis_url = "redis://localhost:6379/0"
+
+[collector]
+orderbook_depth = 20
+heartbeat_interval_seconds = 15
+
+[strategy]
+default_taker_fee_bps = 6
+default_maker_fee_bps = 2
+max_book_staleness_seconds = 5
+
+[research_agent]
+allow_code_generation = true
+allow_production_config_write = false
+allow_ordering = false
+allow_auto_deploy = false

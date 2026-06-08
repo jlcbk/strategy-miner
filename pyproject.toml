@@ -1,0 +1,33 @@
+[project]
+name = "strategy-miner"
+version = "0.1.0"
+description = "Python 优先的加密货币行情数据和策略机会挖掘平台脚手架。"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Proprietary" }
+dependencies = []
+
+[project.optional-dependencies]
+api = [
+  "fastapi>=0.111",
+  "uvicorn[standard]>=0.29",
+]
+data = [
+  "duckdb>=1.0",
+  "pyarrow>=15",
+]
+queue = [
+  "redis>=5",
+  "rq>=1.16",
+]
+dev = [
+  "pytest>=8",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

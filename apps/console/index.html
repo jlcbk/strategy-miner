@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Strategy Miner 控制台</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <h1>Strategy Miner</h1>
+        <p>机会发现、历史回放和策略研究报告。</p>
+      </div>
+      <span class="status">不自动交易</span>
+    </header>
+
+    <main class="grid">
+      <section>
+        <h2>数据健康</h2>
+        <div class="table">
+          <div>交易所</div><div>状态</div><div>最近事件</div>
+          <div>Binance</div><div>等待 collector 接入</div><div>-</div>
+          <div>OKX</div><div>等待 collector 接入</div><div>-</div>
+          <div>Bybit</div><div>等待 collector 接入</div><div>-</div>
+          <div>Bitget</div><div>等待 collector 接入</div><div>-</div>
+        </div>
+      </section>
+
+      <section>
+        <h2>最近机会</h2>
+        <p class="empty">还没有加载机会。运行回放任务后，这里会展示结果。</p>
+      </section>
+
+      <section>
+        <h2>回测任务</h2>
+        <p class="empty">回放任务的次数、窗口和评分摘要会展示在这里。</p>
+      </section>
+
+      <section>
+        <h2>研究报告</h2>
+        <p class="empty">worker 写入后，只读策略研究报告会展示在这里。</p>
+      </section>
+    </main>
+  </body>
+</html>
