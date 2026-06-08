@@ -64,3 +64,7 @@ python -m apps.cli.main run-tool check_guardrail --payload-json '{"action":"plac
 ```
 
 第一版的 API 和控制台刻意保持轻量。核心行为都在可导入的 Python 包和 JSON CLI 中，方便外部 agent 在人工审核前，为新连接器、新策略插件和 worker 任务补代码、跑测试、跑回放并生成报告。
+
+## Claude Code 使用说明
+
+面向用户的完整协作手册见：[docs/CLAUDE_CODE_USER_GUIDE_ZH.md](docs/CLAUDE_CODE_USER_GUIDE_ZH.md)。
