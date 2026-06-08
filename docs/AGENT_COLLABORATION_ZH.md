@@ -61,7 +61,24 @@ python -m apps.cli.main tools
 python -m apps.cli.main run-tool check_guardrail --payload-json '{"action":"place_order"}'
 ```
 
+对一批 `strategy_proposal` 做研究漏斗排序：
+
+```bash
+python -m apps.cli.main run-tool rank_strategy_candidates --payload-json '{"candidates":[{"proposal":{"kind":"strategy_proposal","title":"Funding carry","created_by":"codex","strategy_name":"funding_carry","hypothesis":"正 funding 扣除成本后存在 carry 机会","data_requirements":["funding","mark_price"],"test_plan":["按周回放主流 perp"],"risk_controls":["限制单交易所敞口"]},"research_report":{"failure_modes":["拥挤交易压缩收益"]},"scores":{"verifiability":5,"data_availability":5,"capacity_potential":4,"cost_robustness":4,"overfit_resilience":4,"implementation_simplicity":5}}]}'
+```
+
 CLI 输出 JSON，方便 agent 直接解析。
+
+`rank_strategy_candidates` 使用 0 到 5 分的研究维度：
+
+- `verifiability`：验证路径是否清晰。
+- `data_availability`：需要的数据是否容易取得。
+- `capacity_potential`：策略容量潜力。
+- `cost_robustness`：对手续费、滑点、资金费和冲击成本是否稳健。
+- `overfit_resilience`：是否便于做跨时间、跨交易所或跨品种稳定性检查。
+- `implementation_simplicity`：候选 evaluator 和测试是否容易落地。
+
+高分且核心字段完整的候选会进入 `queued_for_validation`；高分但缺少失败模式、数据需求、测试计划或风险控制的候选会进入 `needs_human_review`。
 
 ## 安全边界
 

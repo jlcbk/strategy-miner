@@ -4,6 +4,11 @@ from dataclasses import dataclass
 from typing import Any
 
 from packages.agent_interface.guardrails import AgentAction, AgentGuardrails
+from packages.agent_interface.research_funnel import (
+    candidate_from_payload,
+    rank_strategy_candidates,
+    scoring_contract,
+)
 from packages.strategies import (
     CrossExchangeSpreadStrategy,
     FundingCarryStrategy,
@@ -29,6 +34,16 @@ def available_tools() -> list[dict[str, Any]]:
             "name": "check_guardrail",
             "description": "检查某个 agent 动作是否被当前安全边界允许。",
             "allowed_action": AgentAction.CREATE_RESEARCH_REPORT.value,
+        },
+        {
+            "name": "rank_strategy_candidates",
+            "description": "按研究漏斗评分策略候选。",
+            "allowed_action": AgentAction.CREATE_STRATEGY_PROPOSAL.value,
+            "input_contract": {
+                "candidates": "数组；每项包含 proposal、scores，可选 research_report",
+                "scores": scoring_contract(),
+                "limit": "可选；最多返回多少个候选",
+            },
         },
     ]
 
@@ -59,5 +74,24 @@ def run_tool(name: str, payload: dict[str, Any] | None = None) -> ToolResult:
             ok=decision.allowed,
             payload={"action": action, "allowed": decision.allowed, "reason": decision.reason},
             message=decision.reason,
+        )
+    if name == "rank_strategy_candidates":
+        raw_candidates = payload.get("candidates")
+        if not isinstance(raw_candidates, list) or not raw_candidates:
+            return ToolResult(ok=False, payload={}, message="缺少 candidates 数组")
+        try:
+            candidates = [candidate_from_payload(candidate) for candidate in raw_candidates]
+            limit = payload.get("limit")
+            if limit is not None:
+                limit = int(limit)
+            ranks = rank_strategy_candidates(candidates, limit=limit)
+        except (ValueError, ArithmeticError) as exc:
+            return ToolResult(ok=False, payload={}, message=str(exc))
+        return ToolResult(
+            ok=True,
+            payload={
+                "ranked_candidates": [rank.to_dict() for rank in ranks],
+                "scoring_contract": scoring_contract(),
+            },
         )
     return ToolResult(ok=False, payload={}, message=f"未知工具：{name}")
