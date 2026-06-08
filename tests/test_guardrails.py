@@ -19,4 +19,5 @@ def test_research_guardrails_reject_production_targets() -> None:
     issues = ResearchGuardrails().validate_artifact(artifact)
 
     assert "candidate_artifact_targets_production_config" in issues
+    assert "候选文件触及受限路径：configs/production/strategies.toml" in issues
     assert not any(issue.startswith("policy_allows_blocked_action") for issue in issues)

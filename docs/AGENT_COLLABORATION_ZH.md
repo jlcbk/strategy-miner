@@ -1,0 +1,90 @@
+# Agent 协作说明
+
+Strategy Miner 不再定位为独立运行的 AI 后台，而是给 Claude Code、Codex、opencode 等外部 agent 使用的量化研究执行层。
+
+## 职责分工
+
+外部 agent 负责：
+
+- 阅读互联网文章、论文、公告、论坛和代码仓库。
+- 提炼策略假设、公式、成本项和失败模式。
+- 生成符合 schema 的研究报告和策略提案。
+- 编写候选 evaluator 和测试。
+- 调用本项目的 CLI、测试和回放工具。
+- 解释结果，并生成 PR 或人工审核材料。
+
+Strategy Miner 负责：
+
+- 交易所数据接入和统一 `MarketEvent`。
+- 数据湖写入、查询和历史回放。
+- 策略插件接口和确定性 evaluator。
+- 机会评分、容量估计、风险提示和失败码。
+- JSON schema、workflow、artifact 留痕和安全边界。
+- 阻止生产配置修改、自动部署和真实下单。
+
+## 标准工作流
+
+```text
+互联网策略灵感
+-> agent 生成 research_report
+-> agent 生成 strategy_proposal
+-> 项目校验 schema 和 guardrail
+-> agent 生成候选 evaluator
+-> 项目跑 fixture tests
+-> 项目跑 replay/backtest
+-> 项目输出 opportunity_report
+-> 人工审核是否合入
+```
+
+## Artifact 契约
+
+当前定义四类机器可读 artifact：
+
+- `research_report`：来源、摘要、关键 claim、公式、成本项、失败模式和数据需求。
+- `strategy_proposal`：策略假设、evaluator 契约、数据需求、测试计划、风险控制和候选文件。
+- `backtest_request`：策略名、版本、数据窗口、symbols、exchanges 和参数。
+- `opportunity_report`：策略结果、机会数量、机会列表、数据窗口和结果哈希。
+
+对应 schema 放在 `schemas/` 目录。
+
+## CLI
+
+列出可用工具：
+
+```bash
+python -m apps.cli.main tools
+```
+
+检查安全边界：
+
+```bash
+python -m apps.cli.main run-tool check_guardrail --payload-json '{"action":"place_order"}'
+```
+
+CLI 输出 JSON，方便 agent 直接解析。
+
+## 安全边界
+
+默认禁止：
+
+- `place_order`
+- `enable_live_trading`
+- `auto_deploy_strategy`
+- `write_production_config`
+- 触及 `configs/production`、`order_router`、`broker`、`live_trading` 等路径的候选文件。
+
+允许：
+
+- 创建研究报告。
+- 创建策略提案。
+- 创建候选 evaluator。
+- 运行测试。
+- 运行回放。
+- 生成 PR 或人工审核材料。
+
+## 设计原则
+
+- AI 负责提出假设，本项目负责验证假设。
+- Agent 输出必须机器可读，不能只给自然语言。
+- 任何策略结论都必须绑定数据窗口和可复现回放结果。
+- 未经人工审核的策略不能标记为 production-ready。

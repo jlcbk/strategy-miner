@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://strategy-miner.local/schemas/strategy_proposal.schema.json",
+  "title": "策略提案",
+  "type": "object",
+  "required": ["kind", "title", "created_by", "strategy_name", "hypothesis", "data_requirements", "test_plan", "risk_controls"],
+  "properties": {
+    "kind": { "const": "strategy_proposal" },
+    "title": { "type": "string", "minLength": 1 },
+    "created_by": { "type": "string", "minLength": 1 },
+    "created_at": { "type": "string" },
+    "strategy_name": { "type": "string", "minLength": 1 },
+    "hypothesis": { "type": "string", "minLength": 1 },
+    "evaluator_contract": { "type": "object" },
+    "data_requirements": { "type": "array", "items": { "type": "string" } },
+    "test_plan": { "type": "array", "items": { "type": "string" } },
+    "risk_controls": { "type": "array", "items": { "type": "string" } },
+    "candidate_files": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": false
+}

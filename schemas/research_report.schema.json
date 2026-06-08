@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://strategy-miner.local/schemas/research_report.schema.json",
+  "title": "研究报告",
+  "type": "object",
+  "required": ["kind", "title", "created_by", "summary", "source_urls", "claims", "failure_modes"],
+  "properties": {
+    "kind": { "const": "research_report" },
+    "title": { "type": "string", "minLength": 1 },
+    "created_by": { "type": "string", "minLength": 1 },
+    "created_at": { "type": "string" },
+    "summary": { "type": "string", "minLength": 1 },
+    "source_urls": { "type": "array", "items": { "type": "string" } },
+    "claims": { "type": "array", "items": { "type": "string" } },
+    "formulas": { "type": "array", "items": { "type": "string" } },
+    "cost_items": { "type": "array", "items": { "type": "string" } },
+    "failure_modes": { "type": "array", "items": { "type": "string" } },
+    "required_data": { "type": "array", "items": { "type": "string" } },
+    "evidence_notes": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": false
+}

@@ -2,14 +2,15 @@
 
 ## 项目目标
 
-构建一个 Python 优先的服务化后台，用于从 Binance、OKX、Bybit、Bitget 的免费历史数据和实时行情中挖掘交易机会。第一版重点做广泛 Alpha 和套利机会发现，不自动交易。后续智能体可以从互联网寻找策略灵感、生成候选策略和 PR 或方案，但不能自动上线，也不能自动下单。
+构建一个 Python 优先的 agent 协作模块，用于从 Binance、OKX、Bybit、Bitget 的免费历史数据和实时行情中挖掘交易机会。第一版重点做广泛 Alpha 和套利机会发现，不自动交易。Claude Code、Codex、opencode 等外部 agent 可以从互联网寻找策略灵感、生成候选策略和 PR 或方案，但不能自动上线，也不能自动下单。
 
 ## 默认技术路线
 
 - 数据源：官方免费历史数据和自建实时采集；必要时未来补充 Tardis 或 CryptoHFTData。
 - 产品范围：现货、永续、交割合约、期权都纳入模型；MVP 优先现货、永续和交割合约，期权先做接口和数据模型预留。
-- 架构：Python 服务化后台，Postgres 管元数据和任务，Parquet/DuckDB 管大行情和回放，Redis Queue 管异步任务。
-- 界面：简单 Web 控制台，展示数据健康、机会列表、回测任务和策略报告。
+- 架构：Python 工具箱和服务化后台并重，Postgres 管元数据和任务，Parquet/DuckDB 管大行情和回放，Redis Queue 管异步任务。
+- Agent 接口：CLI、JSON schema 和可选 API 是第一优先级，方便外部 agent 稳定调用。
+- 界面：简单 Web 观察面板，展示数据健康、机会列表、回测任务、agent 研究报告和策略报告。
 
 ## 核心子系统
 
@@ -19,8 +20,8 @@
 - `strategy_lab`：策略以插件形式注册，每个策略实现 `required_data()`、`evaluate(market_state)`、`explain(opportunity)` 和 `risk_checks(opportunity)`。
 - `replay_engine`：按时间重放历史 Parquet 数据，支持新策略上线后回头复盘，输出机会次数、持续时间、容量、净 edge、滑点敏感性和交易所分布。
 - `opportunity_scoring`：统一计算 gross edge、fee-adjusted edge、slippage-adjusted edge、capacity、latency sensitivity、funding exposure、execution complexity 和 risk score。
-- `research_agent`：周期性从 GitHub、论文、交易所公告、博客、论坛中寻找策略灵感，只生成策略研究报告、候选 evaluator、测试建议或 PR。
-- `control_console`：轻量 Web 控制台，展示数据源健康、最近机会、回测任务、策略表现、智能体研究报告和数据缺口告警。
+- `agent_interface`：给外部 agent 提供 artifact、workflow、guardrail、JSON schema 和工具入口。项目不内置自主 AI 研究能力。
+- `control_console`：轻量 Web 观察面板，展示数据源健康、最近机会、回测任务、策略表现、agent 研究报告和数据缺口告警。
 
 ## 第一批内置策略
 
@@ -41,14 +42,14 @@
 
 1. 数据底座：支持四家交易所现货/永续历史数据下载；支持实时 WebSocket 采集 top 20 order book、trades、funding、mark/index；数据写入 Parquet 和 Postgres 元数据；控制台展示数据源健康和数据缺口。
 2. 策略和回放：实现跨所价差、funding carry、basis 三类策略；实现历史回放引擎；每日生成机会报告；新增策略后可对已有历史数据重新跑 evaluator。
-3. 智能体研究：智能体定期搜索策略来源；输出策略摘要、公式、成本项、失败模式和候选实现；生成 PR 或方案，人工审核后合入。
+3. Agent 协作研究：外部 agent 搜索策略来源；输出策略摘要、公式、成本项、失败模式和候选实现；生成 PR 或方案，人工审核后合入。
 4. 期权扩展：接入期权 instrument metadata；建立期权链数据模型；实现 put-call parity、box spread、calendar/butterfly 静态套利 evaluator；如果免费历史 L2 不足，优先使用实时自采数据做样本。
 
 ## 安全边界
 
 - 第一版不做自动交易。
-- 智能体不能修改生产策略配置。
-- 智能体不能触发下单相关接口。
+- Agent 不能修改生产策略配置。
+- Agent 不能触发下单相关接口。
 - 任何策略上线、生产配置变更和真实交易动作都必须由人审核。
 
 ## 测试策略

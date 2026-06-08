@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://strategy-miner.local/schemas/opportunity_report.schema.json",
+  "title": "机会报告",
+  "type": "object",
+  "required": ["kind", "title", "created_by", "strategy_name", "strategy_version", "data_window", "opportunity_count", "opportunities"],
+  "properties": {
+    "kind": { "const": "opportunity_report" },
+    "title": { "type": "string", "minLength": 1 },
+    "created_by": { "type": "string", "minLength": 1 },
+    "created_at": { "type": "string" },
+    "strategy_name": { "type": "string", "minLength": 1 },
+    "strategy_version": { "type": "string", "minLength": 1 },
+    "data_window": {
+      "type": "object",
+      "required": ["start_ts", "end_ts"],
+      "properties": {
+        "start_ts": { "type": "string" },
+        "end_ts": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "opportunity_count": { "type": "integer", "minimum": 0 },
+    "opportunities": { "type": "array", "items": { "type": "object" } },
+    "result_hash": { "type": ["string", "null"] }
+  },
+  "additionalProperties": false
+}

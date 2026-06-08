@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from packages.agent_interface import AgentGuardrails
 from packages.risk import SafetyPolicy
 
 
@@ -30,6 +31,7 @@ class ResearchArtifact:
 class ResearchGuardrails:
     def __init__(self, policy: SafetyPolicy | None = None) -> None:
         self.policy = policy or SafetyPolicy()
+        self.agent_guardrails = AgentGuardrails()
 
     def validate_artifact(self, artifact: ResearchArtifact) -> list[str]:
         issues: list[str] = []
@@ -44,4 +46,5 @@ class ResearchGuardrails:
             decision = self.policy.check(action)
             if decision.allowed:
                 issues.append(f"policy_allows_blocked_action:{action}")
+        issues.extend(self.agent_guardrails.validate_candidate_files(artifact.candidate_files))
         return issues
