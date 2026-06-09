@@ -11,6 +11,7 @@ ARTIFACT_ROOTS = {
     "orderbook_imbalance_filter": Path("artifacts/strategies/orderbook_imbalance_filter"),
     "quarterly_basis_convergence": Path("artifacts/strategies/quarterly_basis_convergence"),
 }
+STRATEGY_QUEUE_PATH = Path("artifacts/strategies/strategy_queue.json")
 
 
 def test_cross_exchange_funding_artifacts_are_machine_readable() -> None:
@@ -344,6 +345,27 @@ def test_orderbook_imbalance_filter_opportunity_report_matches_supported_schema_
         "opportunities",
         "result_hash",
     }
+
+
+def test_strategy_queue_matches_artifact_inventory() -> None:
+    queue = _read_json(STRATEGY_QUEUE_PATH)
+
+    assert queue["kind"] == "strategy_queue"
+    assert "production-ready" in queue["status_boundary"]
+    strategies = queue["strategies"]
+    strategy_names = {item["strategy_name"] for item in strategies}
+
+    assert strategy_names == set(ARTIFACT_ROOTS)
+    assert all(item["issue_status"] == "strategy:blocked-data" for item in strategies)
+    assert all(item["coverage"]["ready"] is False for item in strategies)
+    assert all(item["opportunity_count"] >= 0 for item in strategies)
+
+    for item in strategies:
+        artifact_root = Path(item["artifact_root"])
+        assert artifact_root == ARTIFACT_ROOTS[item["strategy_name"]]
+        assert (artifact_root / "research_report.json").exists()
+        assert (artifact_root / "strategy_proposal.json").exists()
+        assert (artifact_root / "opportunity_report.json").exists()
 
 
 def _read_artifacts(strategy_name: str) -> tuple[dict, dict]:

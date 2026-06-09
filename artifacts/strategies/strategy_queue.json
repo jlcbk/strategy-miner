@@ -1,0 +1,120 @@
+{
+  "kind": "strategy_queue",
+  "title": "Strategy research queue snapshot",
+  "created_by": "codex",
+  "created_at": "2026-06-09T00:00:00+00:00",
+  "source_repo": "jlcbk/strategy-miner",
+  "status_boundary": "All entries are research or fixture states only; none are production-ready or live-trading candidates.",
+  "strategies": [
+    {
+      "issue_number": 1,
+      "issue_url": "https://github.com/jlcbk/strategy-miner/issues/1",
+      "strategy_name": "funding_carry_vol_filter",
+      "theme": "theme:funding",
+      "issue_status": "strategy:blocked-data",
+      "recommended_status": "queued_for_validation",
+      "funnel_score": "85.00",
+      "artifact_root": "artifacts/strategies/funding_carry_vol_filter",
+      "has_evaluator": true,
+      "opportunity_report_type": "deterministic_fixture",
+      "opportunity_count": 1,
+      "coverage": {
+        "ready": false,
+        "coverage_ratio": "0.03",
+        "covered_count": 1,
+        "required_count": 33,
+        "scope": "Binance BTC/ETH/SOL spot+perp, 2026-06-08"
+      },
+      "operator_fit": "High priority: single-exchange spot/perp carry, minute-to-day workflow, suitable for offline scan and manual confirmation.",
+      "next_action": "Backfill funding, mark/index, trade, fee and instrument partitions before real replay."
+    },
+    {
+      "issue_number": 2,
+      "issue_url": "https://github.com/jlcbk/strategy-miner/issues/2",
+      "strategy_name": "quarterly_basis_convergence",
+      "theme": "theme:basis",
+      "issue_status": "strategy:blocked-data",
+      "recommended_status": "queued_for_validation",
+      "funnel_score": "85.00",
+      "artifact_root": "artifacts/strategies/quarterly_basis_convergence",
+      "has_evaluator": true,
+      "opportunity_report_type": "deterministic_fixture",
+      "opportunity_count": 1,
+      "coverage": {
+        "ready": false,
+        "coverage_ratio": "0.03",
+        "covered_count": 1,
+        "required_count": 30,
+        "scope": "Binance BTC/ETH spot+perp+future, 2026-06-08"
+      },
+      "operator_fit": "High priority: dated futures basis carry, day-to-week holding, suitable for semi-automatic scan and manual confirmation.",
+      "next_action": "Backfill dated future mark, spot/perp trade candles, instrument metadata, fees and depth_volume partitions."
+    },
+    {
+      "issue_number": 3,
+      "issue_url": "https://github.com/jlcbk/strategy-miner/issues/3",
+      "strategy_name": "oi_confirmed_momentum",
+      "theme": "theme:momentum",
+      "issue_status": "strategy:blocked-data",
+      "recommended_status": "queued_for_validation",
+      "funnel_score": "82.00",
+      "artifact_root": "artifacts/strategies/oi_confirmed_momentum",
+      "has_evaluator": true,
+      "opportunity_report_type": "deterministic_fixture_with_failure_mode",
+      "opportunity_count": 1,
+      "coverage": {
+        "ready": false,
+        "coverage_ratio": "0.00",
+        "covered_count": 0,
+        "required_count": 15,
+        "scope": "Binance BTC/ETH/SOL perp, 2026-06-08"
+      },
+      "operator_fit": "Medium-high priority: directional perp filter, useful for alerts and manual confirmation but requires strict signal frequency and venue definition controls.",
+      "next_action": "Backfill open_interest, trade/perp candles, funding and mark partitions, then fix OI venue definition before validation."
+    },
+    {
+      "issue_number": 4,
+      "issue_url": "https://github.com/jlcbk/strategy-miner/issues/4",
+      "strategy_name": "cross_exchange_funding_dispersion",
+      "theme": "theme:funding",
+      "issue_status": "strategy:blocked-data",
+      "recommended_status": "needs_human_review",
+      "funnel_score": "70.50",
+      "artifact_root": "artifacts/strategies/cross_exchange_funding_dispersion",
+      "has_evaluator": false,
+      "opportunity_report_type": "blocked_data_fixture",
+      "opportunity_count": 0,
+      "coverage": {
+        "ready": false,
+        "coverage_ratio": "0.01",
+        "covered_count": 1,
+        "required_count": 96,
+        "scope": "Binance/OKX/Bybit/Bitget BTC/ETH/SOL perp, 2026-06-08"
+      },
+      "operator_fit": "Medium priority: market-neutral concept, but cross-exchange margin, API and inventory complexity require human review.",
+      "next_action": "Backfill funding, mark/index, trade, fee, instrument and depth_volume partitions; verify preallocated-margin assumption before evaluator work."
+    },
+    {
+      "issue_number": 5,
+      "issue_url": "https://github.com/jlcbk/strategy-miner/issues/5",
+      "strategy_name": "orderbook_imbalance_filter",
+      "theme": "theme:liquidity",
+      "issue_status": "strategy:blocked-data",
+      "recommended_status": "proposed",
+      "funnel_score": "45.00",
+      "artifact_root": "artifacts/strategies/orderbook_imbalance_filter",
+      "has_evaluator": false,
+      "opportunity_report_type": "blocked_data_fixture",
+      "opportunity_count": 0,
+      "coverage": {
+        "ready": false,
+        "coverage_ratio": "0.04",
+        "covered_count": 1,
+        "required_count": 24,
+        "scope": "Binance BTC/ETH/SOL spot+perp, 2026-06-08"
+      },
+      "operator_fit": "Low-medium priority: only allowed as a 1m-5m filter for existing strategies, not as standalone HFT or market making.",
+      "next_action": "Accumulate orderbook snapshots and trade/fee partitions; keep as filter research until data quality and cost impact are proven."
+    }
+  ]
+}

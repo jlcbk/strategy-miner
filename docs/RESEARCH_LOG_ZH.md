@@ -582,3 +582,27 @@
 ### 边界
 
 #5 目前没有专用 evaluator，也没有真实 orderbook / trade / fee 数据覆盖，因此不能生成交易候选。该 report 只用于让 artifact/schema/report 链路完整，并明确当前是 `strategy:blocked-data`。解除阻塞仍需要补齐目标窗口的 orderbook、trade/candle 和 fee 分区；历史 orderbook 不能由当前 snapshot collector 回补。
+
+## 2026-06-09：策略队列总览 artifact
+
+本轮新增机器可读策略队列快照：
+
+- `artifacts/strategies/strategy_queue.json`
+
+### 覆盖内容
+
+- 5 个 open strategy issue 的 issue 编号、主题和当前标签。
+- 每个策略的 artifact root、是否已有 evaluator、opportunity report 类型和机会数量。
+- 研究漏斗分数与推荐状态。
+- 当前 data coverage 快照。
+- 对照 operator profile 的优先级判断和下一步动作。
+
+### 当前队列结论
+
+- #1 `funding_carry_vol_filter`：`85.00`，结构上最靠前，但仍缺真实数据分区。
+- #2 `quarterly_basis_convergence`：`85.00`，同样高优先级，但依赖 dated futures metadata 和真实分区。
+- #3 `oi_confirmed_momentum`：`82.00`，已有 fixture，但需要固定 OI venue definition。
+- #4 `cross_exchange_funding_dispersion`：`70.50`，需要人工复核跨所保证金和执行复杂度。
+- #5 `orderbook_imbalance_filter`：`45.00`，只能作为过滤器研究，不能变成独立高频策略。
+
+所有条目继续保持 `strategy:blocked-data`。该队列 artifact 用于恢复长期研究上下文，不代表任何策略通过真实历史验证。
