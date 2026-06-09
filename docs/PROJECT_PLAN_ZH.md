@@ -4,6 +4,8 @@
 
 构建一个 Python 优先的 agent 协作模块，用于从 Binance、OKX、Bybit、Bitget 的免费历史数据和实时行情中挖掘交易机会。第一版重点做广泛 Alpha 和套利机会发现，不自动交易。Claude Code、Codex、opencode 等外部 agent 可以从互联网寻找策略灵感、生成候选策略和 PR 或方案，但不能自动上线，也不能自动下单。
 
+项目最终目标不是收集尽可能多的策略，而是找到适合我们实际操作的策略。GitHub Issue 作为策略灵感入口，项目内 artifact 作为机器可读研究记录，研究漏斗负责把候选策略排序并推进到验证队列。
+
 ## 默认技术路线
 
 - 数据源：官方免费历史数据和自建实时采集；必要时未来补充 Tardis 或 CryptoHFTData。
@@ -21,6 +23,7 @@
 - `replay_engine`：按时间重放历史 Parquet 数据，支持新策略上线后回头复盘，输出机会次数、持续时间、容量、净 edge、滑点敏感性和交易所分布。
 - `opportunity_scoring`：统一计算 gross edge、fee-adjusted edge、slippage-adjusted edge、capacity、latency sensitivity、funding exposure、execution complexity 和 risk score。
 - `agent_interface`：给外部 agent 提供 artifact、workflow、guardrail、JSON schema 和工具入口。项目不内置自主 AI 研究能力。
+- `strategy_intake`：用 GitHub Issue 收集策略灵感，用 label 管理生命周期，并对照 operator profile 判断策略是否适合我们操作。
 - `control_console`：轻量 Web 观察面板，展示数据源健康、最近机会、回测任务、策略表现、agent 研究报告和数据缺口告警。
 
 ## 第一批内置策略
@@ -42,7 +45,7 @@
 
 1. 数据底座：支持四家交易所现货/永续历史数据下载；支持实时 WebSocket 采集 top 20 order book、trades、funding、mark/index；数据写入 Parquet 和 Postgres 元数据；控制台展示数据源健康和数据缺口。
 2. 策略和回放：实现跨所价差、funding carry、basis 三类策略；实现历史回放引擎；每日生成机会报告；新增策略后可对已有历史数据重新跑 evaluator。
-3. Agent 协作研究：外部 agent 搜索策略来源；输出策略摘要、公式、成本项、失败模式和候选实现；生成 PR 或方案，人工审核后合入。
+3. Agent 协作研究：外部 agent 从 issue 和互联网资料扩展策略来源；输出策略摘要、公式、成本项、失败模式和候选实现；用研究漏斗评分后生成 PR 或方案，人工审核后合入。
 4. 期权扩展：接入期权 instrument metadata；建立期权链数据模型；实现 put-call parity、box spread、calendar/butterfly 静态套利 evaluator；如果免费历史 L2 不足，优先使用实时自采数据做样本。
 
 ## 安全边界

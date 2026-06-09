@@ -1,0 +1,75 @@
+name: Strategy idea
+description: 记录一个交易策略灵感，供 agent 扩展、评分和验证。
+title: "[Strategy] "
+labels:
+  - strategy:idea
+body:
+  - type: markdown
+    attributes:
+      value: |
+        用这个模板记录原始策略灵感。内容可以不完整；agent 会后续补成 `research_report`、`strategy_proposal` 和验证计划。
+  - type: textarea
+    id: idea
+    attributes:
+      label: 策略灵感
+      description: 用一两句话描述这个策略想法。
+      placeholder: 例如：当主流 perp funding 持续高于历史分位且现货溢价稳定时，做 delta-neutral carry。
+    validations:
+      required: true
+  - type: textarea
+    id: market_scope
+    attributes:
+      label: 市场范围
+      description: 写明交易所、品种、spot/perp/future、时间周期或持仓周期。
+      placeholder: Binance / OKX / Bybit；BTC、ETH、SOL；perp；1h 到 3d。
+    validations:
+      required: false
+  - type: textarea
+    id: why_it_might_work
+    attributes:
+      label: 为什么可能有效
+      description: 可以放观察、直觉、链接、截图、论文、推文或历史现象。
+    validations:
+      required: false
+  - type: textarea
+    id: signal
+    attributes:
+      label: 信号或触发条件
+      description: 如果已经有进入、退出、过滤条件，写在这里；没有可以留空。
+    validations:
+      required: false
+  - type: checkboxes
+    id: data_requirements
+    attributes:
+      label: 可能需要的数据
+      options:
+        - label: candles
+        - label: trades
+        - label: orderbook
+        - label: funding
+        - label: mark/index price
+        - label: open interest
+        - label: instrument metadata
+        - label: fees
+        - label: on-chain / external data
+  - type: textarea
+    id: costs_and_risks
+    attributes:
+      label: 成本和风险
+      description: 手续费、滑点、资金费、拥挤交易、流动性、极端行情、执行难点。
+    validations:
+      required: false
+  - type: textarea
+    id: operator_fit
+    attributes:
+      label: 适合我们的操作约束
+      description: 资金规模、持仓周期、是否可盯盘、最大回撤、杠杆、交易所和自动化要求。
+    validations:
+      required: false
+  - type: textarea
+    id: references
+    attributes:
+      label: 参考材料
+      description: 相关 URL、论文、代码仓库、截图说明或数据样本。
+    validations:
+      required: false

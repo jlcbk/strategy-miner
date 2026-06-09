@@ -25,9 +25,10 @@ Strategy Miner 负责：
 ## 标准工作流
 
 ```text
-互联网策略灵感
+GitHub issue 或互联网策略灵感
 -> agent 生成 research_report
 -> agent 生成 strategy_proposal
+-> agent 调用 rank_strategy_candidates
 -> 项目校验 schema 和 guardrail
 -> agent 生成候选 evaluator
 -> 项目跑 fixture tests
@@ -46,6 +47,14 @@ Strategy Miner 负责：
 - `opportunity_report`：策略结果、机会数量、机会列表、数据窗口和结果哈希。
 
 对应 schema 放在 `schemas/` 目录。
+
+## Issue 入口
+
+策略灵感优先记录在 GitHub Issue 中。新建 issue 时使用 `Strategy idea` 模板；agent 处理 issue 后，应把自然语言内容整理为 artifact，而不是只在 issue 评论里给结论。
+
+Issue 生命周期和处理规则见：[STRATEGY_INTAKE_ZH.md](STRATEGY_INTAKE_ZH.md)。
+
+每个候选策略都必须对照 [OPERATOR_PROFILE_ZH.md](OPERATOR_PROFILE_ZH.md) 判断是否适合我们的操作条件。收益假设高但需要高杠杆、极低延迟、复杂跨所转账或持续人工盯盘的策略，应降低优先级或标记为人工审核。
 
 ## CLI
 

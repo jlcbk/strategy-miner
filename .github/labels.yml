@@ -1,0 +1,33 @@
+- name: strategy:idea
+  color: "E3F2FD"
+  description: 新提交的策略灵感。
+- name: strategy:researched
+  color: "BBDEFB"
+  description: 已形成 research_report。
+- name: strategy:proposed
+  color: "90CAF9"
+  description: 已形成 strategy_proposal。
+- name: strategy:validation-ready
+  color: "A5D6A7"
+  description: 研究漏斗高分且核心字段完整。
+- name: strategy:blocked-data
+  color: "FFE082"
+  description: 因数据缺失暂时无法验证。
+- name: strategy:rejected
+  color: "EF9A9A"
+  description: 不适合继续投入。
+- name: strategy:validated
+  color: "80CBC4"
+  description: 已完成验证并产出报告。
+- name: theme:funding
+  color: "D1C4E9"
+  description: Funding、carry 或资金费相关。
+- name: theme:basis
+  color: "D1C4E9"
+  description: Basis、期限结构或交割合约相关。
+- name: theme:momentum
+  color: "D1C4E9"
+  description: 动量、趋势或叙事轮动相关。
+- name: theme:liquidity
+  color: "D1C4E9"
+  description: 流动性、盘口或微观结构相关。
