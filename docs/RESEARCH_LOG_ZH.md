@@ -27,3 +27,21 @@
 - 为 #3 补充不同 OI 口径的交易所数据源对比。
 - 为 #4 明确“不依赖跨所转账”的库存和保证金假设。
 - 为 #5 等待 orderbook/trades 数据采集方案明确后再重新评分。
+
+## 2026-06-09：验证准备工具和 #3/#4/#5 数据覆盖检查
+
+本轮新增 `plan_strategy_validation` agent 工具，用于把 `strategy_proposal.data_requirements` 映射到当前项目已有的 `EventType`、可派生数据和缺失数据模型。
+
+### 检查结果
+
+| Issue | 策略 | readiness | 关键阻塞 |
+| --- | --- | --- | --- |
+| [#3](https://github.com/jlcbk/strategy-miner/issues/3) | Open-interest confirmed momentum | `blocked_missing_data_model` | 当前缺少 `open_interest` 数据模型、连接器映射和覆盖率检查。 |
+| [#4](https://github.com/jlcbk/strategy-miner/issues/4) | Cross-exchange funding dispersion hedge | `needs_data_collection_plan` | `depth / volume` 可映射到 `orderbook` + `trade`，但需要固定采样窗口和盘口深度。 |
+| [#5](https://github.com/jlcbk/strategy-miner/issues/5) | Order-book imbalance short-horizon filter | `needs_data_collection_plan` | `orderbook` 已建模，但验证前必须定义 depth、采样频率、staleness 和保留期。 |
+
+### 下一步
+
+- #3 暂不进入 validation queue；先设计 `open_interest` payload、EventType 和交易所连接器边界。
+- #4 可以继续作为 proposed，但需要先写清楚预分配库存、保证金和 depth/volume 采样窗口。
+- #5 保持 `strategy:blocked-data`，直到 orderbook/trades 采集策略明确。

@@ -58,6 +58,7 @@ def test_agent_tools_return_json_ready_payloads() -> None:
         "list_strategies",
         "check_guardrail",
         "rank_strategy_candidates",
+        "plan_strategy_validation",
     }
 
     result = run_tool("check_guardrail", {"action": "place_order"})
@@ -162,3 +163,91 @@ def test_rank_strategy_candidates_tool_keeps_missing_failure_modes_for_review() 
     assert result.ok
     assert ranked[0]["recommended_status"] == "needs_human_review"
     assert ranked[0]["missing_fields"] == ["failure_modes"]
+
+
+def test_plan_strategy_validation_marks_derivable_candles_ready_for_fixture() -> None:
+    result = run_tool(
+        "plan_strategy_validation",
+        {
+            "proposal": {
+                "strategy_name": "funding_carry_vol_filter",
+                "data_requirements": ["funding", "mark_price", "spot_candles", "fees"],
+            },
+            "symbols": ["BTCUSDT"],
+            "exchanges": ["binance"],
+        },
+    )
+
+    assert result.ok
+    plan = result.payload["validation_plan"]
+    assert plan["readiness"] == "ready_for_fixture"
+    assert plan["fixture_scope"] == {"symbols": ["BTCUSDT"], "exchanges": ["binance"]}
+    statuses = {
+        item["normalized_requirement"]: item["status"]
+        for item in plan["requirement_plans"]
+    }
+    assert statuses["funding"] == "covered"
+    assert statuses["spot_candles"] == "derivable"
+
+
+def test_plan_strategy_validation_blocks_missing_open_interest_model() -> None:
+    result = run_tool(
+        "plan_strategy_validation",
+        {
+            "proposal": {
+                "strategy_name": "oi_confirmed_momentum",
+                "data_requirements": ["open_interest", "candles", "funding"],
+            }
+        },
+    )
+
+    assert result.ok
+    plan = result.payload["validation_plan"]
+    assert plan["readiness"] == "blocked_missing_data_model"
+    missing = [
+        item for item in plan["requirement_plans"]
+        if item["normalized_requirement"] == "open_interest"
+    ]
+    assert missing[0]["status"] == "unsupported"
+
+
+def test_plan_strategy_validation_requires_orderbook_collection_policy() -> None:
+    result = run_tool(
+        "plan_strategy_validation",
+        {
+            "proposal": {
+                "strategy_name": "orderbook_imbalance_filter",
+                "data_requirements": ["orderbook", "trades", "fees"],
+            }
+        },
+    )
+
+    assert result.ok
+    plan = result.payload["validation_plan"]
+    assert plan["readiness"] == "needs_data_collection_plan"
+    orderbook = [
+        item for item in plan["requirement_plans"]
+        if item["normalized_requirement"] == "orderbook"
+    ]
+    assert orderbook[0]["status"] == "needs_collection_policy"
+
+
+def test_plan_strategy_validation_normalizes_depth_volume_requirement() -> None:
+    result = run_tool(
+        "plan_strategy_validation",
+        {
+            "proposal": {
+                "strategy_name": "cross_exchange_funding_dispersion",
+                "data_requirements": ["funding", "depth / volume"],
+            }
+        },
+    )
+
+    assert result.ok
+    plan = result.payload["validation_plan"]
+    assert plan["readiness"] == "needs_data_collection_plan"
+    depth_volume = [
+        item for item in plan["requirement_plans"]
+        if item["normalized_requirement"] == "depth_volume"
+    ]
+    assert depth_volume[0]["event_types"] == ["orderbook", "trade"]

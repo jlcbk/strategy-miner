@@ -9,6 +9,10 @@ from packages.agent_interface.research_funnel import (
     rank_strategy_candidates,
     scoring_contract,
 )
+from packages.agent_interface.validation_plan import (
+    plan_strategy_validation,
+    validation_planning_contract,
+)
 from packages.strategies import (
     CrossExchangeSpreadStrategy,
     FundingCarryStrategy,
@@ -44,6 +48,12 @@ def available_tools() -> list[dict[str, Any]]:
                 "scores": scoring_contract(),
                 "limit": "可选；最多返回多少个候选",
             },
+        },
+        {
+            "name": "plan_strategy_validation",
+            "description": "检查 strategy_proposal 的数据需求是否可进入验证准备。",
+            "allowed_action": AgentAction.CREATE_STRATEGY_PROPOSAL.value,
+            "input_contract": validation_planning_contract(),
         },
     ]
 
@@ -94,4 +104,21 @@ def run_tool(name: str, payload: dict[str, Any] | None = None) -> ToolResult:
                 "scoring_contract": scoring_contract(),
             },
         )
+    if name == "plan_strategy_validation":
+        proposal = payload.get("proposal")
+        symbols = payload.get("symbols")
+        exchanges = payload.get("exchanges")
+        if symbols is not None and not isinstance(symbols, list):
+            return ToolResult(ok=False, payload={}, message="symbols 必须是数组")
+        if exchanges is not None and not isinstance(exchanges, list):
+            return ToolResult(ok=False, payload={}, message="exchanges 必须是数组")
+        try:
+            plan = plan_strategy_validation(
+                proposal,
+                symbols=symbols,
+                exchanges=exchanges,
+            )
+        except ValueError as exc:
+            return ToolResult(ok=False, payload={}, message=str(exc))
+        return ToolResult(ok=True, payload={"validation_plan": plan.to_dict()})
     return ToolResult(ok=False, payload={}, message=f"未知工具：{name}")
