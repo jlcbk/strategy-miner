@@ -60,6 +60,7 @@
   "candidate_files": [
     "artifacts/strategies/cross_exchange_funding_dispersion/research_report.json",
     "artifacts/strategies/cross_exchange_funding_dispersion/strategy_proposal.json",
+    "artifacts/strategies/cross_exchange_funding_dispersion/opportunity_report.json",
     "packages/strategies/cross_exchange.py"
   ]
 }

@@ -15,14 +15,26 @@ ARTIFACT_ROOTS = {
 
 def test_cross_exchange_funding_artifacts_are_machine_readable() -> None:
     report, proposal = _read_artifacts("cross_exchange_funding_dispersion")
+    opportunity_report = _read_json(
+        ARTIFACT_ROOTS["cross_exchange_funding_dispersion"] / "opportunity_report.json"
+    )
 
     assert report["kind"] == "research_report"
     assert proposal["kind"] == "strategy_proposal"
+    assert opportunity_report["kind"] == "opportunity_report"
     assert proposal["strategy_name"] == "cross_exchange_funding_dispersion"
+    assert opportunity_report["strategy_name"] == "cross_exchange_funding_dispersion"
     assert report["failure_modes"]
     assert proposal["data_requirements"] == report["required_data"]
     assert "depth_volume" in proposal["data_requirements"]
     assert any("Operator fit" in note for note in report["evidence_notes"])
+    assert "blocked-data fixture" in opportunity_report["title"]
+    assert opportunity_report["opportunity_count"] == 0
+    assert opportunity_report["opportunities"] == []
+    assert (
+        "artifacts/strategies/cross_exchange_funding_dispersion/opportunity_report.json"
+        in proposal["candidate_files"]
+    )
 
 
 def test_cross_exchange_funding_artifacts_match_supported_schema_fields() -> None:
@@ -54,6 +66,25 @@ def test_cross_exchange_funding_artifacts_match_supported_schema_fields() -> Non
         "test_plan",
         "risk_controls",
         "candidate_files",
+    }
+
+
+def test_cross_exchange_funding_opportunity_report_matches_supported_schema_fields() -> None:
+    opportunity_report = _read_json(
+        ARTIFACT_ROOTS["cross_exchange_funding_dispersion"] / "opportunity_report.json"
+    )
+
+    assert set(opportunity_report) == {
+        "kind",
+        "title",
+        "created_by",
+        "created_at",
+        "strategy_name",
+        "strategy_version",
+        "data_window",
+        "opportunity_count",
+        "opportunities",
+        "result_hash",
     }
 
 

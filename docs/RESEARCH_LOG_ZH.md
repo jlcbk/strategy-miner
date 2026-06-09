@@ -525,3 +525,31 @@
 ### 边界
 
 该 report 标题明确为 deterministic fixture opportunity report。它用于验证 artifact/schema/replay 链路，不代表真实历史回放通过，也不应触发 `strategy:validation-ready` 状态变更。#3 继续保持 `strategy:blocked-data`，直到真实 data lake 覆盖目标窗口，并固定 OI venue definition。
+
+## 2026-06-09：#4 Cross-exchange funding blocked-data opportunity report
+
+本轮为 #4 增加机器可读 `opportunity_report`，但它不是机会样本，而是 blocked-data fixture：
+
+- `artifacts/strategies/cross_exchange_funding_dispersion/opportunity_report.json`
+
+### report 内容
+
+- `kind`：`opportunity_report`
+- `strategy_name`：`cross_exchange_funding_dispersion`
+- `strategy_version`：`0.1.0`
+- `opportunity_count`：`0`
+- `opportunities`：空数组。
+- `result_hash`：基于 blocked-data fixture payload 的稳定 sha256。
+- 数据窗口：Binance / OKX / Bybit / Bitget，BTCUSDT / ETHUSDT / SOLUSDT，perp，2026-06-08。
+
+### 工具验证结果
+
+- `rank_strategy_candidates` total_score：`70.50`。
+- 推荐状态：`needs_human_review`。
+- `check_data_coverage` 范围：Binance / OKX / Bybit / Bitget，BTCUSDT / ETHUSDT / SOLUSDT，perp，2026-06-08。
+- 覆盖率：`0.01`，`covered_count=1`，`required_count=96`。
+- 缺失事件类型：`funding`、`mark`、`index`、`trade`、`fee`、`instrument`、`orderbook`。
+
+### 边界
+
+#4 目前没有专用 evaluator，也没有真实 data lake 覆盖，因此不能生成交易候选。该 report 只用于让 artifact/schema/report 链路完整，并明确当前是 `strategy:blocked-data`。解除阻塞仍需要补齐 funding、mark/index、trade/perp candle、fee、instrument 和 depth_volume 分区，并验证预分配保证金假设。

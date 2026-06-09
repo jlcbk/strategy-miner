@@ -1,0 +1,15 @@
+{
+  "kind": "opportunity_report",
+  "title": "Cross-exchange funding dispersion blocked-data fixture opportunity report",
+  "created_by": "codex",
+  "created_at": "2026-06-09T00:00:00+00:00",
+  "strategy_name": "cross_exchange_funding_dispersion",
+  "strategy_version": "0.1.0",
+  "data_window": {
+    "start_ts": "2026-06-08T00:00:00+00:00",
+    "end_ts": "2026-06-09T00:00:00+00:00"
+  },
+  "opportunity_count": 0,
+  "opportunities": [],
+  "result_hash": "1b970e4cc9c12f0f636ce6ec1472ff1da0c0080613c7989699a1b67490c41b0b"
+}
