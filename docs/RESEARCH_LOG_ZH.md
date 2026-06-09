@@ -322,3 +322,27 @@
 ### 状态结论
 
 #1 的 evaluator 现在更贴近 proposal 中的 `spot_candles`、`perp_candles` 和 `trades` 数据需求。它仍保持 `strategy:blocked-data`，因为本地真实 data lake 还缺目标窗口 trade、funding、mark/index、fee 和 instrument 分区。
+
+## 2026-06-09：#1 Funding carry 最小 replay fixture
+
+本轮为 #1 补齐 data lake -> replay -> evaluator 的最小端到端 fixture。
+
+### fixture 内容
+
+- 写入 `funding`：Binance BTC-USDT perp 正 funding。
+- 写入 `mark`：spot reference price 与 perp mark price。
+- 写入 `index`：perp index price，用于 mark/index 脱锚过滤。
+- 写入 `trade`：spot 两笔成交，用于 trade-derived 波动过滤。
+- 使用 `ReplayEngine(DataLakeReader(...)).replay(FundingCarryStrategy(...))` 端到端读取 data lake 分区并产出候选。
+
+### 验证结果
+
+- replay event_count：`6`。
+- opportunity_count：`1`。
+- 输出双腿：`spot buy` + `perp sell`。
+- `recent_price_move_source`：`trade`。
+- `failure_modes`：空。
+
+### 状态结论
+
+#1 现在已有机器可读 artifact、最小 evaluator、trade-derived 波动过滤和最小 replay fixture。它仍不能标记为验证通过，因为该 fixture 是确定性单元样本，不是真实历史 data lake 覆盖；真实验证仍需补齐目标窗口的 funding、mark/index、trade、fee 和 instrument 分区。

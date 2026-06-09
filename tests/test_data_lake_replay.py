@@ -14,9 +14,10 @@ from packages.normalization import (
     MarkPricePayload,
     OrderBookPayload,
     PriceLevel,
+    TradePayload,
 )
 from packages.replay import ReplayEngine
-from packages.strategies import CrossExchangeSpreadStrategy
+from packages.strategies import CrossExchangeSpreadStrategy, FundingCarryStrategy
 
 
 def _book(exchange: str, bid: str, ask: str) -> MarketEvent:
@@ -35,6 +36,28 @@ def _book(exchange: str, bid: str, ask: str) -> MarketEvent:
             bids=(PriceLevel(bid, "1"),),
             asks=(PriceLevel(ask, "1"),),
         ),
+    )
+
+
+def _event(
+    *,
+    event_type: str,
+    market_type: str,
+    payload: object,
+    ts: datetime,
+) -> MarketEvent:
+    return MarketEvent(
+        exchange="binance",
+        market_type=market_type,
+        symbol="BTC-USDT",
+        base_asset="BTC",
+        quote_asset="USDT",
+        event_type=event_type,
+        exchange_ts=ts,
+        local_ts=ts,
+        source="unit-test",
+        sequence_id=f"{event_type}-{market_type}-{ts.isoformat()}",
+        payload=payload,
     )
 
 
@@ -60,6 +83,70 @@ def test_data_lake_round_trip_and_replay(tmp_path) -> None:
     assert opportunity.legs[0].exchange == "binance"
     assert opportunity.legs[1].exchange == "bybit"
     assert opportunity.net_edge_usd > 0
+
+
+def test_funding_carry_replay_uses_trade_volatility_fixture(tmp_path) -> None:
+    base_ts = datetime(2024, 1, 1, 0, 0, tzinfo=timezone.utc)
+    later_ts = datetime(2024, 1, 1, 0, 1, tzinfo=timezone.utc)
+    events = [
+        _event(
+            event_type="funding",
+            market_type="perp",
+            payload=FundingPayload(rate="0.003"),
+            ts=base_ts,
+        ),
+        _event(
+            event_type="mark",
+            market_type="spot",
+            payload=MarkPricePayload(mark_price="100"),
+            ts=base_ts,
+        ),
+        _event(
+            event_type="mark",
+            market_type="perp",
+            payload=MarkPricePayload(mark_price="100"),
+            ts=base_ts,
+        ),
+        _event(
+            event_type="index",
+            market_type="perp",
+            payload={"index_price": "100"},
+            ts=base_ts,
+        ),
+        _event(
+            event_type="trade",
+            market_type="spot",
+            payload=TradePayload("spot-1", "100", "0.1"),
+            ts=base_ts,
+        ),
+        _event(
+            event_type="trade",
+            market_type="spot",
+            payload=TradePayload("spot-2", "101", "0.1"),
+            ts=later_ts,
+        ),
+    ]
+    DataLakeWriter(tmp_path, preferred_format="jsonl").write_events(events)
+
+    replay = ReplayEngine(DataLakeReader(tmp_path)).replay(
+        FundingCarryStrategy(
+            notional_usd=Decimal("1000"),
+            hedge_fee_bps=Decimal("0"),
+        )
+    )
+
+    assert replay.strategy == "funding_carry_vol_filter"
+    assert replay.event_count == 6
+    assert replay.opportunity_count == 1
+    opportunity = replay.opportunities[0]
+    assert [(leg.market_type, leg.side) for leg in opportunity.legs] == [
+        ("spot", "buy"),
+        ("perp", "sell"),
+    ]
+    assert opportunity.net_edge_usd == Decimal("3.000")
+    assert opportunity.metadata["recent_price_move_bps"] == "100.00"
+    assert opportunity.metadata["recent_price_move_source"] == "trade"
+    assert opportunity.failure_modes == []
 
 
 def test_data_coverage_reports_missing_and_present_partitions(tmp_path) -> None:
