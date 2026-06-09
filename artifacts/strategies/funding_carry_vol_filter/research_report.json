@@ -1,0 +1,58 @@
+{
+  "kind": "research_report",
+  "title": "Funding carry with volatility filter research report",
+  "created_by": "codex",
+  "created_at": "2026-06-09T00:00:00+00:00",
+  "summary": "当 perpetual funding 明显高于手续费、滑点和库存成本，且标的波动率、basis 和 mark/index 脱锚风险不处于极端区间时，spot 多头加 perp 空头的 delta-neutral carry 可能形成可复验候选。按当前 operator profile，该方向适合离线扫描、告警和人工确认，不依赖极低延迟，也不应默认使用高杠杆或无人值守执行。",
+  "source_urls": [
+    "https://www.binance.com/en/futures/funding-history/perpetual/arbitrage-data",
+    "https://www.coinglass.com/learn/what-is-funding-rate-arbitrage",
+    "https://blog.amberdata.io/the-ultimate-guide-to-funding-rate-arbitrage-amberdata",
+    "https://www.sciencedirect.com/science/article/pii/S2096720925000818"
+  ],
+  "claims": [
+    "Perpetual funding 会在多空之间周期性转移现金流，正 funding 环境下，spot 多头和 perp 空头组合可以把方向性 beta 降低到接近中性。",
+    "Funding carry 的核心不是预测价格方向，而是验证 funding 收入在扣除手续费、滑点、库存成本和对冲误差后是否仍有净 edge。",
+    "波动率、basis 和 mark/index 脱锚过滤可以降低极端行情下两腿成交不同步、保证金压力和 funding 快速反转带来的失效概率。",
+    "该策略适合从 BTC、ETH、SOL 的 spot/perp 开始，因为这些标的公开历史数据更容易复验，容量和成交深度也更适合早期研究。",
+    "如果策略依赖高杠杆、持续人工盯盘、临时借币或无人值守执行，则不符合当前 operator profile 的早期优先级。"
+  ],
+  "formulas": [
+    "funding_apr_estimate = funding_rate_per_interval * intervals_per_year",
+    "expected_edge = expected_funding - maker_taker_fees - slippage - inventory_or_borrow_cost - rebalance_cost",
+    "volatility_filter = realized_volatility_24h_or_7d <= configured_volatility_threshold",
+    "basis_filter = abs(perp_mark_price / spot_reference_price - 1) <= configured_basis_threshold",
+    "net_edge_bps = expected_edge / notional * 10000"
+  ],
+  "cost_items": [
+    "spot 和 perp 双腿 maker/taker 手续费",
+    "两腿建仓、平仓和再平衡滑点",
+    "库存、借币或资金占用成本",
+    "funding rate 在持仓后反转的机会成本",
+    "极端波动下保证金缓冲和被动减仓成本"
+  ],
+  "failure_modes": [
+    "Funding 在入场后快速压缩或反转，导致 carry 收入无法覆盖双腿成本。",
+    "高波动窗口中 spot 和 perp 两腿无法同步成交，组合短时间暴露方向性风险。",
+    "Perp mark/index 或 spot/perp basis 异常扩大，导致 hedge ratio 和退出价格失真。",
+    "交易拥挤使名义 funding 很高但可成交容量很低，实际滑点吞噬净 edge。",
+    "费用等级、maker/taker 比例或账户设置假设错误，导致回放收益高估。",
+    "使用高杠杆或保证金缓冲不足时，短期浮亏可能触发强平或被动减仓。"
+  ],
+  "required_data": [
+    "funding",
+    "mark_index_price",
+    "spot_candles",
+    "perp_candles",
+    "fees",
+    "trades",
+    "instrument_metadata"
+  ],
+  "evidence_notes": [
+    "Operator fit: 资金规模适合小到中等资金先做模拟；持仓周期为小时级到日级；允许分钟级扫描和人工确认；不需要极低延迟竞争。",
+    "Execution assumption: 初期版本只生成候选和告警，人工确认后才允许模拟执行；不生成实盘配置，不触发真实下单。",
+    "Data status: funding、mark、fee、instrument 已有模型或采集入口；spot/perp candle 仍需从 trade 或 mark 聚合并补齐目标窗口分区。",
+    "Fee boundary: fee-assumption 只能作为回放阶段保守扣费假设，不代表交易所官方账户费率。",
+    "Priority: 在当前策略队列中，该方向比跨所和盘口短周期策略更贴近 operator profile，因为它不依赖复杂跨所转账或持续高频盘口维护。"
+  ]
+}

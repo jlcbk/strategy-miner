@@ -235,3 +235,41 @@
 ### 对策略状态的影响
 
 #1、#2、#4 的 fee 分区可以先用保守假设补齐，减少“成本项不明确”的问题。相关策略仍保持 `strategy:blocked-data`，因为还缺其他行情分区或真实数据运行环境。
+
+## 2026-06-09：#1 Funding carry artifact 化
+
+本轮将 [#1](https://github.com/jlcbk/strategy-miner/issues/1) 从 Issue 文本整理为机器可读 artifact：
+
+- `artifacts/strategies/funding_carry_vol_filter/research_report.json`
+- `artifacts/strategies/funding_carry_vol_filter/strategy_proposal.json`
+
+### 操作适配判断
+
+- 资金规模：适合小到中等资金先做模拟和告警。
+- 持仓周期：小时级到日级，分钟级扫描。
+- 自动化要求：允许离线扫描和人工确认，不进入无人值守执行。
+- 执行假设：spot 多头 + perp 空头，低杠杆或不使用杠杆，限制单交易所和单标的名义敞口。
+- 主要风险：funding 反转、极端波动下两腿不同步、mark/index 脱锚、费用等级假设错误、滑点吞噬净 edge。
+
+### 工具验证结果
+
+- `rank_strategy_candidates` total_score：`85.00`。
+- 推荐状态：`queued_for_validation`。
+- `plan_strategy_validation` readiness：`ready_for_fixture`。
+- `check_data_coverage` 范围：Binance，BTCUSDT / ETHUSDT / SOLUSDT，spot + perp，2026-06-08。
+- 覆盖率：`0.03`，`covered_count=1`，`required_count=33`。
+- 缺失事件类型：`funding`、`mark`、`index`、`trade`、`fee`、`instrument`。
+- `generate_data_collection_jobs` 生成 26 个物理补数 job。
+- `plan_data_collection_commands`：20 个 supported，6 个 blocked；blocked 原因为历史 `instrument` 分区不能由当前 snapshot collector 回补。
+
+### candle 和 mark/index 口径修正
+
+本轮同步修正了 data coverage 的数据需求映射：
+
+- `spot_candles`、`perp_candles` 和通用 `candles` 默认展开为 `trade` 分区，由验证层聚合 candle。
+- `mark_index_price` 和 `index_price` 只作用于 perp / future，不作用于 spot。
+- 如果策略需要成交量 candle 和 mark/index 过滤，应同时声明 `candles` 与 `mark_index_price`。
+
+### 状态结论
+
+#1 是当前最贴近 operator profile 的高优先级候选之一，已经具备机器可读研究产物和 fixture 准备条件。但它仍保持 `strategy:blocked-data`，因为真实 data lake 尚未补齐目标窗口的行情、费用和 instrument 分区。下一步可以优先补 `trade` 分区或创建最小 fixture，验证波动过滤和 funding 反转退出逻辑。

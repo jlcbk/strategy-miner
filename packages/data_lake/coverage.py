@@ -252,6 +252,12 @@ def _market_types_for_requirement(requirement: str, market_types: list[str]) -> 
         return [market_type for market_type in market_types if market_type == "spot"]
     if requirement in {"perp_candles", "funding", "open_interest", "perp_mark_price"}:
         return [market_type for market_type in market_types if market_type == "perp"]
+    if requirement in {"index_price", "mark_index_price"}:
+        return [
+            market_type
+            for market_type in market_types
+            if market_type in {"perp", "future"}
+        ]
     if requirement == "future_mark_price":
         return [market_type for market_type in market_types if market_type == "future"]
     return market_types

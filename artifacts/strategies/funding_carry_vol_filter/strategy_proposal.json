@@ -1,0 +1,68 @@
+{
+  "kind": "strategy_proposal",
+  "title": "Funding carry with volatility filter",
+  "created_by": "codex",
+  "created_at": "2026-06-09T00:00:00+00:00",
+  "strategy_name": "funding_carry_vol_filter",
+  "hypothesis": "当高流动性 perpetual 的 funding 收入持续超过手续费、滑点和库存成本，且 realized volatility、basis 和 mark/index 脱锚风险处于可控区间时，做 spot 多头加 perp 空头的 delta-neutral carry，可能获得适合人工确认和离线回放验证的净 edge。",
+  "evaluator_contract": {
+    "inputs": [
+      "funding rates by exchange, symbol and funding interval",
+      "perp mark prices aligned to funding observations",
+      "spot and perp candles or trade-derived bars for realized volatility and basis filters",
+      "fee schedule and instrument metadata",
+      "trade volume or depth proxy for slippage and capacity estimates"
+    ],
+    "outputs": [
+      "symbol",
+      "exchange",
+      "expected funding carry",
+      "estimated net edge after fees and slippage",
+      "volatility and basis risk flags",
+      "operator suitability flags"
+    ],
+    "entry_rules": [
+      "funding_apr_estimate exceeds fee_slippage_buffer plus min_edge_threshold",
+      "funding remains favorable for configured confirmation windows",
+      "realized volatility is below configured threshold",
+      "spot/perp basis and mark/index divergence are inside configured risk bounds",
+      "estimated capacity is sufficient for target notional without high leverage"
+    ],
+    "exit_rules": [
+      "funding falls below exit threshold or reverses sign",
+      "realized volatility breaches risk threshold",
+      "basis or mark/index divergence breaches risk limit",
+      "net edge after updated cost estimates is non-positive",
+      "manual review rejects current market or account constraints"
+    ]
+  },
+  "data_requirements": [
+    "funding",
+    "mark_index_price",
+    "spot_candles",
+    "perp_candles",
+    "fees",
+    "trades",
+    "instrument_metadata"
+  ],
+  "test_plan": [
+    "先用 Binance BTCUSDT、ETHUSDT、SOLUSDT 的 spot + perp 数据做单交易所离线回放。",
+    "按 funding interval 对齐 funding 和 perp mark，并用 1m 或 5m spot/perp candle 计算 basis 与 realized volatility。",
+    "分别测试无波动过滤、24h realized volatility 过滤和 7d realized volatility 过滤下的净 edge 差异。",
+    "使用 fee-assumption 作为保守扣费下限，同时在人工审核前替换为真实交易所或账户费率。",
+    "用 trade volume 或 depth proxy 估算滑点和容量，过滤无法支持目标 notional 的窗口。",
+    "跨 BTC、ETH、SOL 和不同月份检查阈值稳定性，避免只拟合单一 funding 高峰。"
+  ],
+  "risk_controls": [
+    "不使用高杠杆；要求保证金缓冲覆盖短期 basis 扩大和 mark price 波动。",
+    "限制单交易所、单标的和单方向最大名义敞口。",
+    "过滤极端波动、mark/index 脱锚、basis 异常扩大和成交量不足窗口。",
+    "Funding 反转或净 edge 低于成本缓冲时退出候选，不继续持有。",
+    "只允许离线研究、告警和人工确认；不标记为 production-ready，不触发真实交易。"
+  ],
+  "candidate_files": [
+    "artifacts/strategies/funding_carry_vol_filter/research_report.json",
+    "artifacts/strategies/funding_carry_vol_filter/strategy_proposal.json",
+    "packages/strategies/funding_carry.py"
+  ]
+}

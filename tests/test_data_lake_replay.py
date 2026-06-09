@@ -154,6 +154,35 @@ def test_data_coverage_scopes_spot_candles_to_spot_market(tmp_path) -> None:
     assert ("funding", "spot", "funding") not in requirements
 
 
+def test_data_coverage_scopes_mark_index_price_to_derivatives(tmp_path) -> None:
+    proposal = {
+        "strategy_name": "funding_carry_vol_filter",
+        "data_requirements": ["mark_index_price"],
+    }
+
+    report = check_data_coverage(
+        root=tmp_path,
+        proposal=proposal,
+        exchanges=["binance"],
+        market_types=["spot", "perp", "future"],
+        symbols=["BTCUSDT"],
+        start_date=datetime(2024, 1, 1, tzinfo=timezone.utc).date(),
+        end_date=datetime(2024, 1, 1, tzinfo=timezone.utc).date(),
+    )
+
+    requirements = {
+        (item.market_type, item.event_type)
+        for item in report.missing_items
+    }
+
+    assert requirements == {
+        ("perp", "mark"),
+        ("perp", "index"),
+        ("future", "mark"),
+        ("future", "index"),
+    }
+
+
 def test_data_coverage_expands_depth_volume_to_orderbook_and_trade(tmp_path) -> None:
     proposal = {
         "strategy_name": "cross_exchange_funding_dispersion",
@@ -233,10 +262,9 @@ def test_generate_data_collection_jobs_deduplicates_physical_partitions(tmp_path
 
     assert [job.event_type for job in plan.jobs] == ["mark", "trade"]
     mark_job = plan.jobs[0]
-    assert mark_job.details["normalized_requirements"] == [
-        "perp_mark_price",
-        "perp_candles",
-    ]
+    assert mark_job.details["normalized_requirements"] == ["perp_mark_price"]
+    trade_job = plan.jobs[1]
+    assert trade_job.details["normalized_requirements"] == ["perp_candles"]
 
 
 def test_plan_data_collection_commands_marks_supported_and_blocked_jobs() -> None:

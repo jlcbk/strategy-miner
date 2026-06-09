@@ -218,6 +218,17 @@ event_type=trade
 - 任何依赖 `depth_volume` 的策略，在 data coverage 未满足 `orderbook` 和 `trade` 分区前，都保持 `strategy:blocked-data`。
 - 当前 `orderbook-snapshot` collector 只采当前 Binance spot/perp/future top20 快照。它适合让数据层从现在开始积累热数据，不适合补齐过去日期的 `orderbook` 分区。
 
+## candle 数据需求口径
+
+当前项目尚未单独建模 `candle` event type。策略 proposal 中的 `spot_candles`、`perp_candles` 和通用 `candles` 默认展开为 `event_type=trade` 分区，再由验证层聚合出 1m / 5m / 1h candle。
+
+这样做的原因：
+
+- spot 没有自然的 mark price 分区，不能把 spot candle 误要求为 `mark` 分区。
+- perp / future 的 mark 或 index price 应作为单独数据需求声明，例如 `mark_price`、`perp_mark_price` 或 `mark_index_price`。
+- 同一策略如果既需要成交量 candle 又需要 mark/index 过滤，应同时声明 `candles` 和 `mark_index_price`，由 data coverage 分别检查 `trade`、`mark`、`index` 分区。
+- `index_price` 和 `mark_index_price` 只作用于 perp / future，不作用于 spot。
+
 ## 有 500GB SSD + 3TB HDD 时
 
 推荐分工：

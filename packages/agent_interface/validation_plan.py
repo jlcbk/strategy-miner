@@ -225,18 +225,18 @@ _COVERED_REQUIREMENTS: dict[str, tuple[list[str], list[str]]] = {
 
 _DERIVABLE_REQUIREMENTS: dict[str, tuple[list[str], list[str], str]] = {
     "candles": (
-        ["trade", "mark"],
-        ["当前未单独建模 candle，可从 trade 或 mark 聚合"],
+        ["trade"],
+        ["当前未单独建模 candle，默认从 trade 聚合；mark/index candle 应显式声明为 mark_price 或 mark_index_price"],
         "创建 candle 聚合 fixture，固定 interval 和价格源",
     ),
     "spot_candles": (
-        ["trade", "mark"],
-        ["用 spot market_type 的 trade 或 mark 聚合 candle"],
+        ["trade"],
+        ["用 spot market_type 的 trade 聚合 candle"],
         "创建 spot candle 聚合 fixture，固定 interval 和价格源",
     ),
     "perp_candles": (
-        ["trade", "mark"],
-        ["用 perp market_type 的 trade 或 mark 聚合 candle"],
+        ["trade"],
+        ["用 perp market_type 的 trade 聚合 candle；mark/index 价格源应显式声明为 mark_price 或 mark_index_price"],
         "创建 perp candle 聚合 fixture，固定 interval 和价格源",
     ),
     "depth_volume": (
