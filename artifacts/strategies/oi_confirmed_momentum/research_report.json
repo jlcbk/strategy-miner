@@ -1,0 +1,56 @@
+{
+  "kind": "research_report",
+  "title": "Open-interest confirmed momentum research report",
+  "created_by": "codex",
+  "created_at": "2026-06-09T00:00:00+00:00",
+  "summary": "价格突破同时 open interest、成交量或 mark price 动量同步增强时，可能比单纯价格动量更能区分真实趋势和弱突破。按当前 operator profile，该方向适合作为 perp 市场的离线扫描、告警和人工确认过滤器；它不要求极低延迟，但必须处理 OI 口径差异、funding 拥挤、震荡假突破和数据延迟。",
+  "source_urls": [
+    "https://papers.ssrn.com/sol3/Delivery.cfm/4301150.pdf?abstractid=4301150&mirid=1",
+    "https://www.bitmex.com/blog/volume-and-open-interest",
+    "https://www.coinbase.com/learn/advanced-trading/what-is-open-interest-in-crypto-trading",
+    "https://www.cfbenchmarks.com/blog/revisiting-the-bitcoin-basis-how-momentum-sentiment-impact-the-structural-drivers-of-basis-activity"
+  ],
+  "claims": [
+    "Open interest 反映衍生品未平仓规模变化，可作为价格突破是否获得新增参与者确认的辅助信号。",
+    "价格上涨同时 OI 上升可能表示趋势有新增杠杆或资金参与；价格上涨但 OI 不跟随时，突破质量较弱。",
+    "Funding 过热会提高拥挤交易和平仓踩踏风险，因此 OI 动量需要 funding heat filter。",
+    "该策略更适合作为动量过滤器或组合模块，而不是单独满仓方向性策略。",
+    "不同交易所 OI 口径、采样频率、合约乘数和数据延迟可能不同，真实验证前必须固定 venue definition。"
+  ],
+  "formulas": [
+    "price_return_bps = (latest_mark_price - previous_mark_price) / previous_mark_price * 10000",
+    "oi_change_pct = (latest_open_interest - previous_open_interest) / previous_open_interest * 100",
+    "funding_heat_filter = abs(funding_rate) <= max_abs_funding_rate",
+    "direction = buy if price_return_bps > 0 else sell",
+    "expected_edge_proxy = abs(price_return_bps) / 10000 * notional - fees - slippage"
+  ],
+  "cost_items": [
+    "perp maker/taker 手续费",
+    "突破追单滑点和盘口冲击成本",
+    "持仓期间 funding 支出或收益变化",
+    "震荡假突破导致的止损和反复交易成本",
+    "高波动窗口中 mark price 与实际可成交价偏离"
+  ],
+  "failure_modes": [
+    "OI 上升可能来自反向拥挤仓位，并不一定代表趋势延续。",
+    "震荡市场中价格突破和 OI 上升可能同时出现，但随后快速反转。",
+    "Funding 过热时，继续追涨或追空可能承担拥挤平仓风险。",
+    "不同交易所 OI 口径、采样频率或合约乘数不同，导致跨 venue 回放不可比。",
+    "Alt perp 深度不足时，表面动量信号可能被滑点和冲击成本吞噬。",
+    "如果需要高杠杆、频繁盯盘或极短线抢跑，则不符合当前 operator profile。"
+  ],
+  "required_data": [
+    "open_interest",
+    "perp_candles",
+    "trades",
+    "funding",
+    "mark_price"
+  ],
+  "evidence_notes": [
+    "Operator fit: 适合分钟级到日级持仓、离线扫描和人工确认；不要求极低延迟，但不应作为无人值守高杠杆方向策略。",
+    "Market scope: 早期优先 BTC、ETH、SOL perp，交易所优先 Binance、OKX、Bybit、Bitget；高流动性 alt 只作为第二阶段扩展。",
+    "Execution assumption: 初期只产生研究候选和告警，不生成 live trading 配置，不触发真实下单。",
+    "Venue boundary: 真实验证前必须固定每家交易所 OI 的单位、合约乘数、采样间隔和延迟口径。",
+    "Current status: evaluator 和最小 fixture 已存在，但本地 data lake 仍缺 OI、mark、trade 和 funding 的目标窗口分区；策略继续保持 strategy:blocked-data。"
+  ]
+}

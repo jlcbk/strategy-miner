@@ -439,3 +439,35 @@
 ### 边界
 
 该 report 标题明确为 deterministic fixture opportunity report。它用于验证 artifact/schema/replay 链路，不代表真实历史回放通过，也不应触发 `strategy:validation-ready` 状态变更。#2 继续保持 `strategy:blocked-data`，直到真实 data lake 覆盖目标窗口。
+
+## 2026-06-09：#3 OI momentum artifact 化
+
+本轮将 [#3](https://github.com/jlcbk/strategy-miner/issues/3) 从 Issue 文本和现有 evaluator 整理为机器可读 artifact：
+
+- `artifacts/strategies/oi_confirmed_momentum/research_report.json`
+- `artifacts/strategies/oi_confirmed_momentum/strategy_proposal.json`
+
+### 操作适配判断
+
+- 资金规模：适合小到中等资金先做模拟和告警。
+- 持仓周期：15m、1h、4h 信号，分钟级到日级持仓。
+- 自动化要求：适合离线扫描、告警和人工确认，不进入无人值守执行。
+- 执行假设：perp 单腿方向性候选，必须限制名义敞口、杠杆和信号频率。
+- 主要风险：震荡假突破、funding 拥挤、OI 口径差异、alt perp 深度不足和数据延迟。
+
+### 状态结论
+
+#3 已具备最小 evaluator 和 fixture，本轮补齐了 research/proposal artifact，使其和 #1/#2/#4 一样能进入研究漏斗和 data coverage 工具链。
+
+### 工具验证结果
+
+- `plan_strategy_validation` readiness：`ready_for_fixture`。
+- `rank_strategy_candidates` total_score：`82.00`。
+- 推荐状态：`queued_for_validation`。
+- `check_data_coverage` 范围：Binance，BTCUSDT / ETHUSDT / SOLUSDT，perp，2026-06-08。
+- 覆盖率：`0.00`，`covered_count=0`，`required_count=15`。
+- 缺失事件类型：`open_interest`、`trade`、`funding`、`mark`。
+
+### 状态结论
+
+#3 继续保持 `strategy:blocked-data`，因为真实验证仍需要补齐目标窗口的 open interest、mark、trade/perp candle 和 funding 分区，并固定 OI venue definition。研究漏斗的 `queued_for_validation` 只是结构评分，不代表真实历史验证通过。

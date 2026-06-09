@@ -1,0 +1,68 @@
+{
+  "kind": "strategy_proposal",
+  "title": "Open-interest confirmed momentum",
+  "created_by": "codex",
+  "created_at": "2026-06-09T00:00:00+00:00",
+  "strategy_name": "oi_confirmed_momentum",
+  "hypothesis": "当 perp 价格突破同时 open interest 在同窗口上升，且 funding 没有进入极端拥挤区间时，趋势延续概率可能高于普通动量信号；当价格突破缺少 OI 确认或 funding 过热时，应降低追涨追空优先级。",
+  "evaluator_contract": {
+    "inputs": [
+      "perp mark price series aligned to configured signal interval",
+      "open interest series from a fixed exchange and contract definition",
+      "funding rate near the signal timestamp",
+      "trade-derived candles or volume confirmation",
+      "fee and slippage assumptions for target venue"
+    ],
+    "outputs": [
+      "symbol",
+      "direction",
+      "price_return_bps",
+      "oi_change_pct",
+      "funding_rate",
+      "estimated net edge after fees and slippage",
+      "venue-definition risk flags"
+    ],
+    "entry_rules": [
+      "absolute price_return_bps exceeds min_price_move_bps over the configured window",
+      "oi_change_pct exceeds min_oi_change_pct over the same or aligned window",
+      "absolute funding_rate is below max_abs_funding_rate",
+      "trade volume or candle quality confirms the move",
+      "target symbol is within the high-liquidity BTC/ETH/SOL or approved alt universe"
+    ],
+    "exit_rules": [
+      "fixed holding period expires",
+      "price breaks the opposite side of the signal window",
+      "OI diverges from price direction",
+      "funding enters crowded threshold",
+      "manual review rejects venue data quality or liquidity"
+    ]
+  },
+  "data_requirements": [
+    "open_interest",
+    "perp_candles",
+    "trades",
+    "funding",
+    "mark_price"
+  ],
+  "test_plan": [
+    "比较有无 OI 过滤的基础动量信号，观察假突破过滤效果。",
+    "先用 BTCUSDT、ETHUSDT、SOLUSDT perp 做确定性 fixture 和最近窗口回放。",
+    "按 Binance、OKX、Bybit、Bitget 分别固定 OI 口径，避免跨 venue 混用单位或采样间隔。",
+    "测试 funding 过热过滤，确认高拥挤窗口不会生成追涨追空候选。",
+    "分层比较 15m、1h、4h 信号窗口和固定持仓周期退出。",
+    "在真实 data lake 覆盖目标窗口前，只保留研究候选和告警，不进入自动执行。"
+  ],
+  "risk_controls": [
+    "限制单标的、单交易所和单信号窗口的最大名义敞口。",
+    "过滤 funding 极端拥挤、重大公告、交易所异常和剧烈跳空窗口。",
+    "不使用高杠杆；要求能承受信号反转和滑点放大的短期亏损。",
+    "优先 BTC、ETH、SOL；低流动性 alt 必须额外通过 depth/volume 检查。",
+    "必须明确 OI venue definition；未完成数据口径比较前保持 strategy:blocked-data。",
+    "不标记为 production-ready，不触发真实交易或 live trading。"
+  ],
+  "candidate_files": [
+    "artifacts/strategies/oi_confirmed_momentum/research_report.json",
+    "artifacts/strategies/oi_confirmed_momentum/strategy_proposal.json",
+    "packages/strategies/oi_momentum.py"
+  ]
+}
