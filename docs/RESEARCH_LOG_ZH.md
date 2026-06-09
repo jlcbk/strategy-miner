@@ -635,3 +635,26 @@
 ### 状态结论
 
 #6 继续保持 `strategy:blocked-data`。行情侧可以映射到 spot candles、orderbook、trades 和 fees，但进入验证前必须先定义 `stablecoin_issuer_status` 或等价的人工赎回状态 checklist。该策略不提供投资建议，不自动执行，不标记为 production-ready。
+
+## 2026-06-09：#6 stablecoin manual gate refinement
+
+本轮将 #6 的阻塞原因从通用“缺少数据模型”细化为人工门禁需求：
+
+- 新增 `artifacts/strategies/stablecoin_depeg_mean_reversion/manual_status_checklist.json`。
+- `stablecoin_issuer_status` 在 `plan_strategy_validation` 中规范化为 `manual_stablecoin_status_checklist`。
+- 新增 readiness：`needs_manual_gate`。
+- `check_data_coverage` 单独输出 `manual_requirements`，不把人工门禁误当作 data lake 分区。
+
+### 工具验证结果
+
+- `plan_strategy_validation` readiness：`needs_manual_gate`。
+- `rank_strategy_candidates` total_score：`60.50`。
+- 推荐状态：`needs_human_review`。
+- `stablecoin_issuer_status` normalized requirement：`manual_stablecoin_status_checklist`。
+- requirement status：`needs_manual_review`。
+- event_types：空数组，表示不生成 `MarketEvent` 分区。
+- `check_data_coverage`：`manual_requirements=["manual_stablecoin_status_checklist"]`，`unsupported_requirements=[]`。
+
+### 状态结论
+
+#6 继续保持 `strategy:blocked-data`。人工 checklist 通过前，只能生成 blocked alert，不能进入自动验证队列、不能生成自动买入指令，也不能标记为 validation-ready 或 production-ready。

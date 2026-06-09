@@ -9,12 +9,14 @@ class RequirementStatus(str, Enum):
     COVERED = "covered"
     DERIVABLE = "derivable"
     NEEDS_COLLECTION_POLICY = "needs_collection_policy"
+    NEEDS_MANUAL_REVIEW = "needs_manual_review"
     UNSUPPORTED = "unsupported"
 
 
 class ValidationReadiness(str, Enum):
     READY_FOR_FIXTURE = "ready_for_fixture"
     NEEDS_DATA_COLLECTION_PLAN = "needs_data_collection_plan"
+    NEEDS_MANUAL_GATE = "needs_manual_gate"
     BLOCKED_MISSING_DATA_MODEL = "blocked_missing_data_model"
 
 
@@ -131,6 +133,16 @@ def _plan_requirement(raw: str) -> RequirementPlan:
             notes=notes,
             next_actions=[action],
         )
+    if normalized in _MANUAL_REQUIREMENTS:
+        notes, action = _MANUAL_REQUIREMENTS[normalized]
+        return RequirementPlan(
+            raw_requirement=raw,
+            normalized_requirement=normalized,
+            status=RequirementStatus.NEEDS_MANUAL_REVIEW,
+            event_types=[],
+            notes=notes,
+            next_actions=[action],
+        )
     return RequirementPlan(
         raw_requirement=raw,
         normalized_requirement=normalized,
@@ -145,6 +157,8 @@ def _readiness(requirement_plans: list[RequirementPlan]) -> ValidationReadiness:
     statuses = {plan.status for plan in requirement_plans}
     if RequirementStatus.UNSUPPORTED in statuses:
         return ValidationReadiness.BLOCKED_MISSING_DATA_MODEL
+    if RequirementStatus.NEEDS_MANUAL_REVIEW in statuses:
+        return ValidationReadiness.NEEDS_MANUAL_GATE
     if RequirementStatus.NEEDS_COLLECTION_POLICY in statuses:
         return ValidationReadiness.NEEDS_DATA_COLLECTION_PLAN
     return ValidationReadiness.READY_FOR_FIXTURE
@@ -161,6 +175,8 @@ def _next_actions(
         actions.append("创建最小 fixture，并用目标市场跑确定性单元测试")
     elif readiness == ValidationReadiness.NEEDS_DATA_COLLECTION_PLAN:
         actions.append("先确定采样频率、盘口深度、保留期和容量估计方法")
+    elif readiness == ValidationReadiness.NEEDS_MANUAL_GATE:
+        actions.append("人工门禁通过前，只允许生成 blocked alert，不进入自动验证队列")
     else:
         actions.append("补齐缺失数据模型前，不进入 validation_queue")
     return _dedupe(actions)
@@ -187,6 +203,10 @@ def _normalize_requirement(value: str) -> str:
         "perp_mark": "perp_mark_price",
         "oi": "open_interest",
         "depth_volume": "depth_volume",
+        "stablecoin_issuer_status": "manual_stablecoin_status_checklist",
+        "issuer_status": "manual_stablecoin_status_checklist",
+        "redemption_status": "manual_stablecoin_status_checklist",
+        "stablecoin_redemption_status": "manual_stablecoin_status_checklist",
     }
     return aliases.get(normalized, normalized)
 
@@ -254,5 +274,15 @@ _POLICY_REQUIREMENTS: dict[str, tuple[list[str], list[str], str]] = {
         ["orderbook"],
         ["全量 orderbook 或 100ms 级 orderbook 尚未作为默认采集政策"],
         "若策略需要全量深度或亚秒级盘口，先单独评估磁盘、延迟和保留期",
+    ),
+}
+
+_MANUAL_REQUIREMENTS: dict[str, tuple[list[str], str]] = {
+    "manual_stablecoin_status_checklist": (
+        [
+            "稳定币发行方、储备、赎回通道、交易所充提和监管状态不是 MarketEvent；必须作为人工审核门禁记录",
+            "未通过人工门禁时，策略只能输出 blocked alert，不能进入自动买入或 validation-ready 状态",
+        ],
+        "填写 stablecoin 手工状态 checklist，并把结论绑定到具体资产、交易所、时间窗口和来源链接",
     ),
 }

@@ -420,6 +420,40 @@ def test_data_coverage_expands_depth_volume_to_orderbook_and_trade(tmp_path) -> 
     }
 
 
+def test_data_coverage_keeps_manual_stablecoin_gate_out_of_partitions(tmp_path) -> None:
+    proposal = {
+        "strategy_name": "stablecoin_depeg_mean_reversion",
+        "data_requirements": [
+            "spot_candles",
+            "orderbook",
+            "fees",
+            "stablecoin_issuer_status",
+        ],
+    }
+
+    report = check_data_coverage(
+        root=tmp_path,
+        proposal=proposal,
+        exchanges=["binance"],
+        market_types=["spot"],
+        symbols=["USDCUSDT"],
+        start_date=datetime(2026, 6, 8, tzinfo=timezone.utc).date(),
+        end_date=datetime(2026, 6, 8, tzinfo=timezone.utc).date(),
+    )
+
+    assert not report.ready
+    assert report.unsupported_requirements == []
+    assert report.manual_requirements == ["manual_stablecoin_status_checklist"]
+    assert {
+        (item.normalized_requirement, item.event_type)
+        for item in report.missing_items
+    } == {
+        ("spot_candles", "trade"),
+        ("orderbook", "orderbook"),
+        ("fees", "fee"),
+    }
+
+
 def test_generate_data_collection_jobs_from_missing_partitions(tmp_path) -> None:
     proposal = {
         "strategy_name": "oi_confirmed_momentum",

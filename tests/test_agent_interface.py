@@ -340,3 +340,30 @@ def test_plan_strategy_validation_blocks_full_depth_orderbook_policy() -> None:
         if item["normalized_requirement"] == "orderbook_full_depth"
     ]
     assert full_depth[0]["status"] == "needs_collection_policy"
+
+
+def test_plan_strategy_validation_requires_manual_gate_for_stablecoin_status() -> None:
+    result = run_tool(
+        "plan_strategy_validation",
+        {
+            "proposal": {
+                "strategy_name": "stablecoin_depeg_mean_reversion",
+                "data_requirements": [
+                    "spot_candles",
+                    "orderbook",
+                    "stablecoin_issuer_status",
+                ],
+            }
+        },
+    )
+
+    assert result.ok
+    plan = result.payload["validation_plan"]
+    assert plan["readiness"] == "needs_manual_gate"
+    stablecoin_status = [
+        item for item in plan["requirement_plans"]
+        if item["normalized_requirement"] == "manual_stablecoin_status_checklist"
+    ]
+    assert stablecoin_status[0]["status"] == "needs_manual_review"
+    assert stablecoin_status[0]["event_types"] == []
+    assert "blocked alert" in plan["next_actions"][-1]

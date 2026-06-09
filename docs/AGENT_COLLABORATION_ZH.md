@@ -39,12 +39,13 @@ GitHub issue 或互联网策略灵感
 
 ## Artifact 契约
 
-当前定义四类机器可读 artifact：
+当前定义的核心机器可读 artifact：
 
 - `research_report`：来源、摘要、关键 claim、公式、成本项、失败模式和数据需求。
 - `strategy_proposal`：策略假设、evaluator 契约、数据需求、测试计划、风险控制和候选文件。
 - `backtest_request`：策略名、版本、数据窗口、symbols、exchanges 和参数。
 - `opportunity_report`：策略结果、机会数量、机会列表、数据窗口和结果哈希。
+- `manual_gate_checklist`：非行情数据或人工风控门禁，例如发行方状态、赎回状态、监管状态和人工确认要求；默认不产生 data lake 分区。
 
 对应 schema 放在 `schemas/` 目录。
 

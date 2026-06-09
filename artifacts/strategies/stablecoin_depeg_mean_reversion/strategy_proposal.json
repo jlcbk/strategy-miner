@@ -50,7 +50,7 @@
     "加入 orderbook depth 和 trade volume 过滤，测试折价是否有真实可成交容量。",
     "显式扣除 spot taker fee、滑点、冲击成本和退出折价损失。",
     "引入 manual issuer status checklist，在未通过人工确认时只生成 blocked alert。",
-    "在 stablecoin_issuer_status 数据模型建立前，不进入 validation-ready。"
+    "在 manual_stablecoin_status_checklist 人工门禁通过前，不进入 validation-ready。"
   ],
   "risk_controls": [
     "只允许 spot，不使用杠杆、借贷或链上复杂路径。",
@@ -63,6 +63,7 @@
   "candidate_files": [
     "artifacts/strategies/stablecoin_depeg_mean_reversion/research_report.json",
     "artifacts/strategies/stablecoin_depeg_mean_reversion/strategy_proposal.json",
+    "artifacts/strategies/stablecoin_depeg_mean_reversion/manual_status_checklist.json",
     "artifacts/strategies/stablecoin_depeg_mean_reversion/opportunity_report.json"
   ]
 }

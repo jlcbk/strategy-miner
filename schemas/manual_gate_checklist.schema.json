@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://strategy-miner.local/schemas/manual_gate_checklist.schema.json",
+  "title": "人工门禁 checklist",
+  "type": "object",
+  "required": [
+    "kind",
+    "title",
+    "created_by",
+    "strategy_name",
+    "gate_name",
+    "decision_states",
+    "default_decision",
+    "blocking_rule",
+    "scope_fields",
+    "required_checks",
+    "output_contract"
+  ],
+  "properties": {
+    "kind": { "const": "manual_gate_checklist" },
+    "title": { "type": "string", "minLength": 1 },
+    "created_by": { "type": "string", "minLength": 1 },
+    "created_at": { "type": "string" },
+    "strategy_name": { "type": "string", "minLength": 1 },
+    "gate_name": { "type": "string", "minLength": 1 },
+    "decision_states": {
+      "type": "array",
+      "items": { "enum": ["pass", "fail", "unknown"] },
+      "minItems": 3,
+      "uniqueItems": true
+    },
+    "default_decision": { "enum": ["pass", "fail", "unknown"] },
+    "blocking_rule": { "type": "string", "minLength": 1 },
+    "scope_fields": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1
+    },
+    "required_checks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "question", "required_evidence", "fail_if"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "question": { "type": "string", "minLength": 1 },
+          "required_evidence": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 },
+            "minItems": 1
+          },
+          "fail_if": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 },
+            "minItems": 1
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "output_contract": { "type": "object" }
+  },
+  "additionalProperties": false
+}

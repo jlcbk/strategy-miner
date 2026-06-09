@@ -15,6 +15,7 @@ ARTIFACT_ROOTS = {
     ),
 }
 STRATEGY_QUEUE_PATH = Path("artifacts/strategies/strategy_queue.json")
+MANUAL_GATE_SCHEMA_PATH = Path("schemas/manual_gate_checklist.schema.json")
 
 
 def test_cross_exchange_funding_artifacts_are_machine_readable() -> None:
@@ -355,6 +356,9 @@ def test_stablecoin_depeg_artifacts_are_machine_readable() -> None:
     opportunity_report = _read_json(
         ARTIFACT_ROOTS["stablecoin_depeg_mean_reversion"] / "opportunity_report.json"
     )
+    checklist = _read_json(
+        ARTIFACT_ROOTS["stablecoin_depeg_mean_reversion"] / "manual_status_checklist.json"
+    )
 
     assert report["kind"] == "research_report"
     assert proposal["kind"] == "strategy_proposal"
@@ -370,6 +374,17 @@ def test_stablecoin_depeg_artifacts_are_machine_readable() -> None:
     assert "blocked-data fixture" in opportunity_report["title"]
     assert opportunity_report["opportunity_count"] == 0
     assert opportunity_report["opportunities"] == []
+    assert checklist["kind"] == "manual_gate_checklist"
+    assert checklist["gate_name"] == "manual_stablecoin_status_checklist"
+    assert checklist["default_decision"] == "unknown"
+    assert "pass" in checklist["decision_states"]
+    assert "fail" in checklist["decision_states"]
+    assert "unknown" in checklist["decision_states"]
+    assert len(checklist["required_checks"]) == 5
+    assert (
+        "artifacts/strategies/stablecoin_depeg_mean_reversion/manual_status_checklist.json"
+        in proposal["candidate_files"]
+    )
 
 
 def test_stablecoin_depeg_artifacts_match_supported_schema_fields() -> None:
@@ -419,6 +434,39 @@ def test_stablecoin_depeg_artifacts_match_supported_schema_fields() -> None:
     }
 
 
+def test_stablecoin_depeg_manual_checklist_matches_supported_fields() -> None:
+    checklist = _read_json(
+        ARTIFACT_ROOTS["stablecoin_depeg_mean_reversion"] / "manual_status_checklist.json"
+    )
+    schema = _read_json(MANUAL_GATE_SCHEMA_PATH)
+
+    assert set(checklist) == {
+        "kind",
+        "title",
+        "created_by",
+        "created_at",
+        "strategy_name",
+        "gate_name",
+        "decision_states",
+        "default_decision",
+        "blocking_rule",
+        "scope_fields",
+        "required_checks",
+        "output_contract",
+    }
+    assert {check["id"] for check in checklist["required_checks"]} == {
+        "issuer_public_status",
+        "redemption_channel_status",
+        "exchange_deposit_withdraw_status",
+        "cross_venue_price_consistency",
+        "operator_fit_confirmation",
+    }
+    assert checklist["output_contract"]["allowed_downstream_action"].startswith(
+        "blocked_alert_only"
+    )
+    assert schema["properties"]["kind"]["const"] == checklist["kind"]
+
+
 def test_strategy_queue_matches_artifact_inventory() -> None:
     queue = _read_json(STRATEGY_QUEUE_PATH)
 
@@ -438,6 +486,15 @@ def test_strategy_queue_matches_artifact_inventory() -> None:
         assert (artifact_root / "research_report.json").exists()
         assert (artifact_root / "strategy_proposal.json").exists()
         assert (artifact_root / "opportunity_report.json").exists()
+
+    stablecoin = [
+        item for item in strategies
+        if item["strategy_name"] == "stablecoin_depeg_mean_reversion"
+    ][0]
+    assert stablecoin["coverage"]["unsupported_requirements"] == []
+    assert stablecoin["coverage"]["manual_requirements"] == [
+        "manual_stablecoin_status_checklist"
+    ]
 
 
 def _read_artifacts(strategy_name: str) -> tuple[dict, dict]:

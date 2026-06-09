@@ -44,6 +44,7 @@ class DataCoverageReport:
     coverage_ratio: str
     missing_items: list[CoverageItem]
     unsupported_requirements: list[str]
+    manual_requirements: list[str]
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -55,6 +56,7 @@ class DataCoverageReport:
             "coverage_ratio": self.coverage_ratio,
             "missing_items": [item.to_dict() for item in self.missing_items],
             "unsupported_requirements": self.unsupported_requirements,
+            "manual_requirements": self.manual_requirements,
         }
 
 
@@ -125,6 +127,11 @@ def check_data_coverage(
             RequirementStatus.NEEDS_COLLECTION_POLICY,
         }
     ]
+    manual_requirements = [
+        plan.normalized_requirement
+        for plan in validation_plan.requirement_plans
+        if plan.status == RequirementStatus.NEEDS_MANUAL_REVIEW
+    ]
 
     required_items = [
         CoverageItem(
@@ -155,7 +162,12 @@ def check_data_coverage(
     covered_count = sum(1 for item in required_items if item.present)
     required_count = len(required_items)
     missing_items = [item for item in required_items if not item.present]
-    ready = not unsupported and required_count > 0 and covered_count == required_count
+    ready = (
+        not unsupported
+        and not manual_requirements
+        and required_count > 0
+        and covered_count == required_count
+    )
     ratio = "1.00" if required_count == 0 else f"{covered_count / required_count:.2f}"
     return DataCoverageReport(
         root=str(lake_root),
@@ -166,6 +178,7 @@ def check_data_coverage(
         coverage_ratio=ratio,
         missing_items=missing_items,
         unsupported_requirements=unsupported,
+        manual_requirements=manual_requirements,
     )
 
 

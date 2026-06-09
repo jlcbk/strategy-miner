@@ -1,0 +1,102 @@
+{
+  "kind": "manual_gate_checklist",
+  "title": "Stablecoin issuer and redemption status manual gate",
+  "created_by": "codex",
+  "created_at": "2026-06-09T00:00:00+00:00",
+  "strategy_name": "stablecoin_depeg_mean_reversion",
+  "gate_name": "manual_stablecoin_status_checklist",
+  "decision_states": [
+    "pass",
+    "fail",
+    "unknown"
+  ],
+  "default_decision": "unknown",
+  "blocking_rule": "Only pass allows fixture alert review; fail or unknown must keep the strategy blocked and must not produce automated buy instructions.",
+  "scope_fields": [
+    "stablecoin_asset",
+    "quote_asset",
+    "exchange",
+    "market_type",
+    "symbol",
+    "review_window_start",
+    "review_window_end",
+    "reviewed_by",
+    "reviewed_at"
+  ],
+  "required_checks": [
+    {
+      "id": "issuer_public_status",
+      "question": "Has the issuer published no active reserve, redemption, freeze or solvency warning for this asset during the review window?",
+      "required_evidence": [
+        "issuer status page or official announcement URL",
+        "timestamped reviewer note"
+      ],
+      "fail_if": [
+        "issuer reports paused redemptions",
+        "issuer reports reserve impairment",
+        "issuer or regulator reports asset freeze or enforcement action"
+      ]
+    },
+    {
+      "id": "redemption_channel_status",
+      "question": "Are primary redemption or conversion channels available for normal eligible users during the review window?",
+      "required_evidence": [
+        "issuer redemption documentation or status URL",
+        "reviewer note describing redemption availability"
+      ],
+      "fail_if": [
+        "redemptions are paused",
+        "conversion path is unavailable",
+        "redemption minimums, delays or eligibility rules make the path unusable for the intended notional"
+      ]
+    },
+    {
+      "id": "exchange_deposit_withdraw_status",
+      "question": "Does the target exchange show deposits, withdrawals and spot trading as available for the asset?",
+      "required_evidence": [
+        "exchange asset status URL or screenshot reference",
+        "timestamped reviewer note"
+      ],
+      "fail_if": [
+        "deposit is suspended",
+        "withdrawal is suspended",
+        "spot trading is suspended or in reduce-only mode"
+      ]
+    },
+    {
+      "id": "cross_venue_price_consistency",
+      "question": "Is the observed discount not solely a single-venue bad print or isolated stale quote?",
+      "required_evidence": [
+        "prices from at least two priority exchanges when available",
+        "orderbook depth snapshot reference"
+      ],
+      "fail_if": [
+        "only one venue shows the discount and its orderbook is stale",
+        "best bid/ask depth is too thin for the intended notional"
+      ]
+    },
+    {
+      "id": "operator_fit_confirmation",
+      "question": "Does the candidate remain spot-only, low-notional, manually confirmed and within the operator profile?",
+      "required_evidence": [
+        "intended notional",
+        "maximum holding time",
+        "maximum loss threshold",
+        "human reviewer confirmation"
+      ],
+      "fail_if": [
+        "requires leverage",
+        "requires lending or chain routing",
+        "requires unattended execution",
+        "requires continuous manual monitoring beyond the planned review window"
+      ]
+    }
+  ],
+  "output_contract": {
+    "manual_gate_decision": "pass | fail | unknown",
+    "failed_check_ids": "array of required_checks ids",
+    "evidence_urls": "array of official or exchange URLs",
+    "reviewer_notes": "human-readable explanation",
+    "allowed_downstream_action": "blocked_alert_only unless manual_gate_decision is pass"
+  }
+}

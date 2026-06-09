@@ -49,7 +49,7 @@
     "Operator fit: 只适合离线扫描、告警和人工确认；不需要高杠杆或极低延迟，但需要明确人工审核流程。",
     "Market scope: 早期只看 USDC、USDT、FDUSD、TUSD 等高流动性法币抵押稳定币的 CEX spot 市场，不纳入算法稳定币。",
     "Execution assumption: spot only，不使用杠杆、不使用借贷、不依赖链上复杂路径。",
-    "Risk boundary: 发行方状态、赎回通道、监管和交易所充提限制必须由人工确认；当前项目尚未建模 stablecoin_issuer_status。",
-    "Current status: 行情数据可映射到 spot_candles/orderbook/trades/fees，但 issuer/redemption 状态缺模型，因此保持 strategy:blocked-data。"
+    "Risk boundary: 发行方状态、赎回通道、监管和交易所充提限制必须由人工确认；当前项目用 manual_stablecoin_status_checklist 作为人工门禁，而不是 MarketEvent。",
+    "Current status: 行情数据可映射到 spot_candles/orderbook/trades/fees，但 issuer/redemption 人工门禁未通过前只能生成 blocked alert，因此保持 strategy:blocked-data。"
   ]
 }
