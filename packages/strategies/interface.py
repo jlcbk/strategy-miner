@@ -144,6 +144,18 @@ class MarketState:
             and (symbol is None or event.symbol == symbol.upper())
         ]
 
+    def instruments(self, *, symbol: str | None = None) -> list[MarketEvent]:
+        instruments = [
+            event
+            for event in self.events
+            if event.event_type == EventType.INSTRUMENT
+            and (symbol is None or event.symbol == symbol.upper())
+        ]
+        return _latest_by_key(
+            instruments,
+            key=lambda event: (event.exchange.value, event.market_type.value, event.symbol),
+        )
+
     def open_interest(self, *, symbol: str | None = None) -> list[MarketEvent]:
         open_interest = [
             event

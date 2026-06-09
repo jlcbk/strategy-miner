@@ -396,3 +396,25 @@
 ### 状态结论
 
 #2 仍是贴近 operator profile 的高优先级候选：不依赖极低延迟，适合半自动扫描和人工确认。但它继续保持 `strategy:blocked-data`，因为真实验证需要 dated futures 的 future mark、spot/perp trade-derived candle、instrument metadata、fees 和 depth_volume 分区。
+
+## 2026-06-09：#2 Dated futures 最小 fixture
+
+本轮将内置 `FuturesBasisStrategy` 对齐为 `quarterly_basis_convergence`，并补齐 dated futures 最小 fixture 行为。
+
+### evaluator 行为
+
+- `MarketState` 新增 `instruments()`，用于读取交易规则和到期信息。
+- `quarterly_basis_convergence` 的最小 required data 更新为 `mark` 和 `instrument`。
+- 有 future instrument metadata 时，输出 `expiry_ts`、`days_to_expiry`、`annualized_basis` 和 `contract_size`。
+- 缺少 expiry metadata 时，保留 `requires_expiry_and_borrow_checks_before_execution` 风险提示。
+- 最小 fixture 使用 spot mark 100、future mark 103、30 天后到期的 future instrument，输出 `basis_bps=300.00`、`annualized_basis=0.3650`。
+
+### 测试覆盖
+
+- 策略单元测试确认 instrument expiry metadata 能进入 opportunity metadata。
+- data lake replay fixture 确认 `mark` + `instrument` 分区可端到端产出 spot buy + future sell 候选。
+- `list_strategies` 已显示 `quarterly_basis_convergence`，required data 为 `instrument` 和 `mark`。
+
+### 状态结论
+
+#2 已从 artifact 推进到最小可测 evaluator 和 replay fixture。它仍不是验证通过策略，也不能进入实盘；真实验证仍需要补齐目标窗口的 dated futures mark、spot/perp trade-derived candle、instrument metadata、fees 和 depth_volume 分区。

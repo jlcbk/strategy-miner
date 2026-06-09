@@ -10,6 +10,7 @@ from packages.data_lake import (
 from packages.data_lake.collection_commands import plan_data_collection_commands
 from packages.normalization import (
     FundingPayload,
+    Instrument,
     MarketEvent,
     MarkPricePayload,
     OrderBookPayload,
@@ -17,7 +18,7 @@ from packages.normalization import (
     TradePayload,
 )
 from packages.replay import ReplayEngine
-from packages.strategies import CrossExchangeSpreadStrategy, FundingCarryStrategy
+from packages.strategies import CrossExchangeSpreadStrategy, FundingCarryStrategy, FuturesBasisStrategy
 
 
 def _book(exchange: str, bid: str, ask: str) -> MarketEvent:
@@ -147,6 +148,63 @@ def test_funding_carry_replay_uses_trade_volatility_fixture(tmp_path) -> None:
     assert opportunity.metadata["recent_price_move_bps"] == "100.00"
     assert opportunity.metadata["recent_price_move_source"] == "trade"
     assert opportunity.failure_modes == []
+
+
+def test_quarterly_basis_replay_uses_instrument_expiry_fixture(tmp_path) -> None:
+    base_ts = datetime(2024, 1, 1, 0, 0, tzinfo=timezone.utc)
+    expiry_ts = datetime(2024, 1, 31, 0, 0, tzinfo=timezone.utc)
+    events = [
+        _event(
+            event_type="mark",
+            market_type="spot",
+            payload=MarkPricePayload(mark_price="100"),
+            ts=base_ts,
+        ),
+        _event(
+            event_type="mark",
+            market_type="future",
+            payload=MarkPricePayload(mark_price="103"),
+            ts=base_ts,
+        ),
+        _event(
+            event_type="instrument",
+            market_type="future",
+            payload=Instrument(
+                exchange="binance",
+                market_type="future",
+                symbol="BTC-USDT",
+                base_asset="BTC",
+                quote_asset="USDT",
+                contract_size="1",
+                expiry_ts=expiry_ts,
+            ),
+            ts=base_ts,
+        ),
+    ]
+    DataLakeWriter(tmp_path, preferred_format="jsonl").write_events(events)
+
+    replay = ReplayEngine(DataLakeReader(tmp_path)).replay(
+        FuturesBasisStrategy(
+            notional_usd=Decimal("1000"),
+            taker_fee_bps=Decimal("0"),
+            slippage_bps=Decimal("0"),
+            min_basis_bps=Decimal("10"),
+        )
+    )
+
+    assert replay.strategy == "quarterly_basis_convergence"
+    assert replay.event_count == 3
+    assert replay.opportunity_count == 1
+    opportunity = replay.opportunities[0]
+    assert [(leg.market_type, leg.side) for leg in opportunity.legs] == [
+        ("spot", "buy"),
+        ("future", "sell"),
+    ]
+    assert opportunity.metadata["basis_bps"] == "300.00"
+    assert opportunity.metadata["days_to_expiry"] == "30.00"
+    assert opportunity.metadata["annualized_basis"] == "0.3650"
+    assert opportunity.metadata["contract_size"] == "1"
+    assert "requires_expiry_and_borrow_checks_before_execution" not in opportunity.failure_modes
 
 
 def test_data_coverage_reports_missing_and_present_partitions(tmp_path) -> None:

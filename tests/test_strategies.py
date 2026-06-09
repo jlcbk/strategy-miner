@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from packages.normalization import (
     FundingPayload,
+    Instrument,
     MarketEvent,
     MarkPricePayload,
     OpenInterestPayload,
@@ -246,6 +247,45 @@ def test_futures_basis_detects_spot_future_gap() -> None:
     assert opportunities[0].legs[0].side == "buy"
     assert opportunities[0].legs[1].side == "sell"
     assert opportunities[0].metadata["basis_bps"] == "300.00"
+
+
+def test_futures_basis_uses_instrument_expiry_metadata() -> None:
+    expiry = datetime(2024, 1, 31, tzinfo=timezone.utc)
+    state = MarketState(
+        [
+            _event("mark", "spot", MarkPricePayload(mark_price="100")),
+            _event("mark", "future", MarkPricePayload(mark_price="103")),
+            _event(
+                "instrument",
+                "future",
+                Instrument(
+                    exchange="binance",
+                    market_type="future",
+                    symbol="BTC-USDT",
+                    base_asset="BTC",
+                    quote_asset="USDT",
+                    contract_size="1",
+                    expiry_ts=expiry,
+                ),
+            ),
+        ]
+    )
+
+    opportunities = FuturesBasisStrategy(
+        notional_usd=Decimal("1000"),
+        taker_fee_bps=Decimal("0"),
+        slippage_bps=Decimal("0"),
+        min_basis_bps=Decimal("10"),
+    ).evaluate(state)
+
+    assert len(opportunities) == 1
+    assert opportunities[0].strategy == "quarterly_basis_convergence"
+    assert opportunities[0].metadata["basis_bps"] == "300.00"
+    assert opportunities[0].metadata["expiry_ts"] == "2024-01-31T00:00:00+00:00"
+    assert opportunities[0].metadata["days_to_expiry"] == "30.00"
+    assert opportunities[0].metadata["annualized_basis"] == "0.3650"
+    assert opportunities[0].metadata["contract_size"] == "1"
+    assert "requires_expiry_and_borrow_checks_before_execution" not in opportunities[0].failure_modes
 
 
 def test_open_interest_momentum_detects_confirmed_breakout() -> None:
