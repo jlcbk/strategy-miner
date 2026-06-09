@@ -182,6 +182,37 @@ open interest
 
 最大变量是订单簿频率。MVP 不建议一开始采全量深度或 100ms 全市场。
 
+## depth_volume MVP 采集政策
+
+`depth_volume` 是策略验证里的容量和滑点代理，不是高频执行信号。它的目标是回答“这个候选在目标 notional 下是否有足够流动性”，而不是重建完整订单流。
+
+默认 MVP 政策：
+
+```text
+orderbook depth：top20 bid/ask
+orderbook frequency：1s snapshot
+orderbook staleness：超过 3s 视为 stale，不参与该窗口容量估计
+trade aggregation：按 1m 和 5m 同时聚合
+capacity window：默认 5m，短周期过滤器可额外看 1m
+retention：orderbook 热数据 7-14 天，trades 14-30 天
+symbols：优先 BTC / ETH perp，SOL 和其他标的按磁盘压力降级
+exchanges：优先 Binance / Bybit，OKX / Bitget 第二阶段补齐
+```
+
+用于验证时，`depth_volume` 展开为两个物理事件分区：
+
+```text
+event_type=orderbook
+event_type=trade
+```
+
+策略使用规则：
+
+- 对 #4 这类跨所 funding 策略，`depth_volume` 只用于过滤容量不足或滑点过高的候选。
+- 对 #5 这类 order-book imbalance 策略，MVP 只允许作为 1m 到 5m 过滤器评估，不允许演变成无人值守高频做市。
+- 如果策略要求全量深度、100ms 级 snapshot 或 L2 delta，需要单独标记为 `orderbook_full_depth`，重新评估磁盘、延迟、保留期和 operator fit。
+- 任何依赖 `depth_volume` 的策略，在 data coverage 未满足 `orderbook` 和 `trade` 分区前，都保持 `strategy:blocked-data`。
+
 ## 有 500GB SSD + 3TB HDD 时
 
 推荐分工：

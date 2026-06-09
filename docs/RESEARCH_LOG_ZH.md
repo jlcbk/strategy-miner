@@ -127,3 +127,28 @@
 ### 状态结论
 
 #4 仍是有研究价值的候选，但当前不能进入 `strategy:validation-ready`。下一步应先确定 `depth_volume` 采集政策，并补齐 funding、mark/index、trade/mark、fee、instrument 分区后再重新检查 data coverage。
+
+## 2026-06-09：depth_volume MVP 采集政策
+
+本轮将 `depth_volume` 从“采样政策待定”推进为项目默认 MVP 政策，供 [#4](https://github.com/jlcbk/strategy-miner/issues/4) 和 [#5](https://github.com/jlcbk/strategy-miner/issues/5) 复用。
+
+### 默认政策
+
+- `orderbook`：top20 bid/ask，1s snapshot。
+- staleness：超过 3s 的 orderbook snapshot 不参与容量估计。
+- `trade`：同时聚合 1m 和 5m volume。
+- capacity window：默认 5m，短周期过滤器可额外看 1m。
+- retention：orderbook 热数据 7-14 天，trades 14-30 天。
+- scope：优先 BTC / ETH perp，Binance / Bybit；SOL、OKX、Bitget 作为第二阶段。
+
+### 工具状态变化
+
+- `plan_strategy_validation` 对 #4 的 readiness 从 `needs_data_collection_plan` 变为 `ready_for_fixture`。
+- `plan_strategy_validation` 对 #5 的 readiness 从 `needs_data_collection_plan` 变为 `ready_for_fixture`。
+- `check_data_coverage` 对 #4 最小范围 Binance BTCUSDT perp / 2026-06-08 仍为 `ready=false`，`covered_count=0`，`required_count=9`。
+- `generate_data_collection_jobs` 已能把 `depth_volume` 展开为 `orderbook` 和 `trade` 分区，并与 `perp_candles` 复用同一个 `trade` job。
+- `plan_data_collection_commands` 对 `orderbook` 返回高风险阻塞：`orderbook snapshot collector 尚未接入；MVP 目标为 top20 1s snapshot`。
+
+### 状态结论
+
+采样政策不再是 #4/#5 的主要阻塞。当前主要阻塞变为实际数据分区缺失，以及 `orderbook`、`index`、`fee`、`instrument` collector 尚未接入。两个策略仍保持 `strategy:blocked-data`，直到目标 data coverage 满足验证窗口。

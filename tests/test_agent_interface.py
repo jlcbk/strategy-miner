@@ -277,7 +277,7 @@ def test_plan_strategy_validation_covers_open_interest_model() -> None:
     assert open_interest[0]["event_types"] == ["open_interest"]
 
 
-def test_plan_strategy_validation_requires_orderbook_collection_policy() -> None:
+def test_plan_strategy_validation_uses_orderbook_mvp_policy() -> None:
     result = run_tool(
         "plan_strategy_validation",
         {
@@ -290,12 +290,13 @@ def test_plan_strategy_validation_requires_orderbook_collection_policy() -> None
 
     assert result.ok
     plan = result.payload["validation_plan"]
-    assert plan["readiness"] == "needs_data_collection_plan"
+    assert plan["readiness"] == "ready_for_fixture"
     orderbook = [
         item for item in plan["requirement_plans"]
         if item["normalized_requirement"] == "orderbook"
     ]
-    assert orderbook[0]["status"] == "needs_collection_policy"
+    assert orderbook[0]["status"] == "covered"
+    assert "top20 1s snapshot" in orderbook[0]["notes"][0]
 
 
 def test_plan_strategy_validation_normalizes_depth_volume_requirement() -> None:
@@ -311,9 +312,31 @@ def test_plan_strategy_validation_normalizes_depth_volume_requirement() -> None:
 
     assert result.ok
     plan = result.payload["validation_plan"]
-    assert plan["readiness"] == "needs_data_collection_plan"
+    assert plan["readiness"] == "ready_for_fixture"
     depth_volume = [
         item for item in plan["requirement_plans"]
         if item["normalized_requirement"] == "depth_volume"
     ]
+    assert depth_volume[0]["status"] == "derivable"
     assert depth_volume[0]["event_types"] == ["orderbook", "trade"]
+
+
+def test_plan_strategy_validation_blocks_full_depth_orderbook_policy() -> None:
+    result = run_tool(
+        "plan_strategy_validation",
+        {
+            "proposal": {
+                "strategy_name": "full_depth_orderbook_alpha",
+                "data_requirements": ["orderbook_full_depth"],
+            }
+        },
+    )
+
+    assert result.ok
+    plan = result.payload["validation_plan"]
+    assert plan["readiness"] == "needs_data_collection_plan"
+    full_depth = [
+        item for item in plan["requirement_plans"]
+        if item["normalized_requirement"] == "orderbook_full_depth"
+    ]
+    assert full_depth[0]["status"] == "needs_collection_policy"

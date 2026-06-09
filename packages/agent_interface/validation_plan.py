@@ -213,6 +213,12 @@ _COVERED_REQUIREMENTS: dict[str, tuple[list[str], list[str]]] = {
     "future_mark_price": (["mark"], ["用 future market_type + EventType.MARK 表达"]),
     "perp_mark_price": (["mark"], ["用 perp market_type + EventType.MARK 表达"]),
     "trades": (["trade"], ["EventType.TRADE 已建模，部分历史归档 parser 已接入"]),
+    "orderbook": (
+        ["orderbook"],
+        [
+            "EventType.ORDERBOOK 已建模；默认 MVP 政策为 top20 1s snapshot，staleness 上限 3s，热数据保留 7-14 天"
+        ],
+    ),
     "fees": (["fee"], ["EventType.FEE 已建模，仍需按交易所补具体费率源"]),
     "instrument_metadata": (["instrument"], ["EventType.INSTRUMENT 已建模"]),
 }
@@ -233,17 +239,20 @@ _DERIVABLE_REQUIREMENTS: dict[str, tuple[list[str], list[str], str]] = {
         ["用 perp market_type 的 trade 或 mark 聚合 candle"],
         "创建 perp candle 聚合 fixture，固定 interval 和价格源",
     ),
+    "depth_volume": (
+        ["orderbook", "trade"],
+        [
+            "MVP depth_volume 用 top20 orderbook 1s snapshot 和 trade 聚合为 1m/5m 容量代理",
+            "staleness 上限 3s；orderbook 热数据保留 7-14 天，trades 保留 14-30 天",
+        ],
+        "按 docs/PIPELINES_AND_STORAGE_ZH.md 的 depth_volume MVP 政策检查 orderbook 和 trade 分区",
+    ),
 }
 
 _POLICY_REQUIREMENTS: dict[str, tuple[list[str], list[str], str]] = {
-    "orderbook": (
+    "orderbook_full_depth": (
         ["orderbook"],
-        ["EventType.ORDERBOOK 已建模，但验证前必须固定采样频率和 depth"],
-        "为 orderbook 数据定义 depth、采样频率、staleness 和保留期",
-    ),
-    "depth_volume": (
-        ["orderbook", "trade"],
-        ["depth 用 orderbook 表达，volume 用 trade 聚合"],
-        "为 orderbook depth 和 trade volume 定义共同采样窗口",
+        ["全量 orderbook 或 100ms 级 orderbook 尚未作为默认采集政策"],
+        "若策略需要全量深度或亚秒级盘口，先单独评估磁盘、延迟和保留期",
     ),
 }

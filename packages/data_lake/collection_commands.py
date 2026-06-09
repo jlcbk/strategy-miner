@@ -166,6 +166,8 @@ def _unsupported_reason(
     day: date,
     current_date: date,
 ) -> str:
+    if event_type == "orderbook":
+        return "orderbook snapshot collector 尚未接入；MVP 目标为 top20 1s snapshot"
     if event_type not in {"trade", "mark", "funding", "open_interest"}:
         return f"collector 暂未支持事件类型：{event_type}"
     if event_type in {"mark", "funding", "open_interest"} and market_type not in {
@@ -196,7 +198,7 @@ def _risk_tier(event_type: str) -> str:
         return "low"
     if event_type == "mark":
         return "medium"
-    if event_type == "trade":
+    if event_type in {"trade", "orderbook"}:
         return "high"
     return "unknown"
 
@@ -211,6 +213,7 @@ def _execution_group(event_type: str) -> str:
         "open_interest": "small_rest",
         "mark": "archive_mark",
         "trade": "archive_trade",
+        "orderbook": "stream_orderbook",
     }.get(event_type, "unknown")
 
 

@@ -154,6 +154,34 @@ def test_data_coverage_scopes_spot_candles_to_spot_market(tmp_path) -> None:
     assert ("funding", "spot", "funding") not in requirements
 
 
+def test_data_coverage_expands_depth_volume_to_orderbook_and_trade(tmp_path) -> None:
+    proposal = {
+        "strategy_name": "cross_exchange_funding_dispersion",
+        "data_requirements": ["depth_volume"],
+    }
+
+    report = check_data_coverage(
+        root=tmp_path,
+        proposal=proposal,
+        exchanges=["binance"],
+        market_types=["perp"],
+        symbols=["BTCUSDT"],
+        start_date=datetime(2024, 1, 1, tzinfo=timezone.utc).date(),
+        end_date=datetime(2024, 1, 1, tzinfo=timezone.utc).date(),
+    )
+
+    assert not report.ready
+    assert report.unsupported_requirements == []
+    assert report.required_count == 2
+    assert {
+        (item.normalized_requirement, item.event_type)
+        for item in report.missing_items
+    } == {
+        ("depth_volume", "orderbook"),
+        ("depth_volume", "trade"),
+    }
+
+
 def test_generate_data_collection_jobs_from_missing_partitions(tmp_path) -> None:
     proposal = {
         "strategy_name": "oi_confirmed_momentum",
@@ -252,6 +280,32 @@ def test_plan_data_collection_commands_marks_supported_and_blocked_jobs() -> Non
     assert plan.commands[1].risk_tier == "low"
     assert plan.commands[1].requires_confirmation is False
     assert plan.commands[1].reason == "okx funding collector 尚未接入"
+
+
+def test_plan_data_collection_commands_marks_orderbook_as_high_risk_blocked_job() -> None:
+    plan = plan_data_collection_commands(
+        current_date=datetime(2026, 6, 9, tzinfo=timezone.utc).date(),
+        jobs=[
+            {
+                "id": "orderbook-job",
+                "exchange": "binance",
+                "market_type": "perp",
+                "symbol": "BTCUSDT",
+                "event_type": "orderbook",
+                "start_ts": "2026-06-08T00:00:00+00:00",
+                "end_ts": "2026-06-09T00:00:00+00:00",
+            },
+        ],
+    )
+
+    assert plan.supported_count == 0
+    assert plan.blocked_count == 1
+    assert plan.risk_counts == {"high": 1}
+    assert plan.commands[0].supported is False
+    assert plan.commands[0].risk_tier == "high"
+    assert plan.commands[0].requires_confirmation is True
+    assert plan.commands[0].execution_group == "stream_orderbook"
+    assert "top20 1s snapshot" in plan.commands[0].reason
 
 
 def test_plan_data_collection_commands_supports_bybit_low_and_medium_risk_jobs() -> None:

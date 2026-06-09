@@ -45,9 +45,10 @@
   "test_plan": [
     "先用 BTCUSDT、ETHUSDT、SOLUSDT 在 Binance、OKX、Bybit、Bitget 间做离线 funding spread 面板扫描。",
     "按原生 funding interval 对齐各交易所 funding，并用 1m 或 5m mark/index 数据过滤脱锚窗口。",
+    "按 depth_volume MVP 政策使用 top20 orderbook 1s snapshot 和 1m/5m trade 聚合过滤容量不足窗口。",
     "比较只看 funding spread 与扣除手续费、滑点、容量约束后的 net edge 差异。",
     "用不同阈值、不同确认窗口、不同交易所组合做稳定性检查，避免只拟合单一交易所或单一日期。",
-    "在数据采集政策确定前，只产出候选和告警，不生成自动执行配置。"
+    "在目标数据分区和 collector 补齐前，只产出候选和告警，不生成自动执行配置。"
   ],
   "risk_controls": [
     "不使用跨所临时转账作为入场前提，只允许预分配库存和保证金版本。",

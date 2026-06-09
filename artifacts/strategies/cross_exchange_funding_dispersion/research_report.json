@@ -49,8 +49,8 @@
   "evidence_notes": [
     "Operator fit: 资金规模适合小到中等资金先做模拟；持仓周期为小时级到日级；允许半自动告警和人工确认；不应要求持续人工盯盘。",
     "Execution assumption: 初期版本必须假设交易所账户中已经预分配库存和保证金，不把跨所转账作为入场条件。",
-    "Sampling policy: funding 以每个交易所原生 funding interval 为主；mark/index 用 1m 或 5m 对齐；depth/volume 只用于容量和滑点过滤，不作为高频入场信号。",
+    "Sampling policy: funding 以每个交易所原生 funding interval 为主；mark/index 用 1m 或 5m 对齐；depth_volume MVP 使用 top20 orderbook 1s snapshot 和 trade 聚合为 1m/5m 容量代理。",
     "Risk priority: 降低高杠杆、低流动性 alt、需要多账户快速再平衡、或需要无人值守执行的版本优先级。",
-    "Current status: 核心 funding 数据可公开复验，但 depth_volume 与跨所执行成本仍需固定采样和容量估计政策。"
+    "Current status: depth_volume 采样和容量估计政策已固定；当前阻塞转为本地 data lake 分区缺失，以及 orderbook/index/fee/instrument collector 尚未接入。"
   ]
 }
