@@ -1,0 +1,52 @@
+{
+  "kind": "opportunity_report",
+  "title": "Open-interest confirmed momentum deterministic fixture opportunity report",
+  "created_by": "codex",
+  "created_at": "2026-06-09T00:00:00+00:00",
+  "strategy_name": "oi_confirmed_momentum",
+  "strategy_version": "0.1.0",
+  "data_window": {
+    "start_ts": "2024-01-01T00:00:00+00:00",
+    "end_ts": "2024-01-01T01:00:00+00:00"
+  },
+  "opportunity_count": 1,
+  "opportunities": [
+    {
+      "strategy": "oi_confirmed_momentum",
+      "version": "0.1.0",
+      "legs": [
+        {
+          "exchange": "binance",
+          "market_type": "perp",
+          "symbol": "BTC-USDT",
+          "side": "buy",
+          "price": "102",
+          "qty": "9.803921568627450980392156863",
+          "role": "taker"
+        }
+      ],
+      "gross_edge_usd": "20.00",
+      "fees_usd": "0",
+      "slippage_est_usd": "0",
+      "net_edge_usd": "20.00",
+      "capacity_usd": "1000",
+      "confidence": "0.6200",
+      "risk_score": "0.3800",
+      "grade": "A",
+      "failure_modes": [
+        "requires_oi_venue_definition_before_validation"
+      ],
+      "data_window": {
+        "start_ts": "2024-01-01T00:00:00+00:00",
+        "end_ts": "2024-01-01T01:00:00+00:00"
+      },
+      "metadata": {
+        "price_return_bps": "200.00",
+        "oi_change_pct": "6.00",
+        "funding_rate": "0.0002",
+        "direction": "buy"
+      }
+    }
+  ],
+  "result_hash": "33493c2f8f05572f28a0f2d68eadb8fcf65941fc6b97f20fd299da966120910c"
+}

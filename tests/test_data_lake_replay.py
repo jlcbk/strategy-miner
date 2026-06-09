@@ -13,12 +13,18 @@ from packages.normalization import (
     Instrument,
     MarketEvent,
     MarkPricePayload,
+    OpenInterestPayload,
     OrderBookPayload,
     PriceLevel,
     TradePayload,
 )
 from packages.replay import ReplayEngine
-from packages.strategies import CrossExchangeSpreadStrategy, FundingCarryStrategy, FuturesBasisStrategy
+from packages.strategies import (
+    CrossExchangeSpreadStrategy,
+    FundingCarryStrategy,
+    FuturesBasisStrategy,
+    OpenInterestMomentumStrategy,
+)
 
 
 def _book(exchange: str, bid: str, ask: str) -> MarketEvent:
@@ -205,6 +211,64 @@ def test_quarterly_basis_replay_uses_instrument_expiry_fixture(tmp_path) -> None
     assert opportunity.metadata["annualized_basis"] == "0.3650"
     assert opportunity.metadata["contract_size"] == "1"
     assert "requires_expiry_and_borrow_checks_before_execution" not in opportunity.failure_modes
+
+
+def test_open_interest_momentum_replay_uses_oi_fixture(tmp_path) -> None:
+    base_ts = datetime(2024, 1, 1, 0, 0, tzinfo=timezone.utc)
+    later_ts = datetime(2024, 1, 1, 1, 0, tzinfo=timezone.utc)
+    events = [
+        _event(
+            event_type="mark",
+            market_type="perp",
+            payload=MarkPricePayload(mark_price="100"),
+            ts=base_ts,
+        ),
+        _event(
+            event_type="mark",
+            market_type="perp",
+            payload=MarkPricePayload(mark_price="102"),
+            ts=later_ts,
+        ),
+        _event(
+            event_type="open_interest",
+            market_type="perp",
+            payload=OpenInterestPayload(open_interest="1000"),
+            ts=base_ts,
+        ),
+        _event(
+            event_type="open_interest",
+            market_type="perp",
+            payload=OpenInterestPayload(open_interest="1060"),
+            ts=later_ts,
+        ),
+        _event(
+            event_type="funding",
+            market_type="perp",
+            payload=FundingPayload(rate="0.0002"),
+            ts=later_ts,
+        ),
+    ]
+    DataLakeWriter(tmp_path, preferred_format="jsonl").write_events(events)
+
+    replay = ReplayEngine(DataLakeReader(tmp_path)).replay(
+        OpenInterestMomentumStrategy(
+            notional_usd=Decimal("1000"),
+            min_price_move_bps=Decimal("100"),
+            min_oi_change_pct=Decimal("3"),
+            taker_fee_bps=Decimal("0"),
+            slippage_bps=Decimal("0"),
+        )
+    )
+
+    assert replay.strategy == "oi_confirmed_momentum"
+    assert replay.event_count == 5
+    assert replay.opportunity_count == 1
+    opportunity = replay.opportunities[0]
+    assert [(leg.market_type, leg.side) for leg in opportunity.legs] == [("perp", "buy")]
+    assert opportunity.net_edge_usd == Decimal("20.00")
+    assert opportunity.metadata["price_return_bps"] == "200.00"
+    assert opportunity.metadata["oi_change_pct"] == "6.00"
+    assert opportunity.failure_modes == ["requires_oi_venue_definition_before_validation"]
 
 
 def test_data_coverage_reports_missing_and_present_partitions(tmp_path) -> None:

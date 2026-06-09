@@ -155,10 +155,15 @@ def test_quarterly_basis_opportunity_report_matches_supported_schema_fields() ->
 
 def test_oi_confirmed_momentum_artifacts_are_machine_readable() -> None:
     report, proposal = _read_artifacts("oi_confirmed_momentum")
+    opportunity_report = _read_json(
+        ARTIFACT_ROOTS["oi_confirmed_momentum"] / "opportunity_report.json"
+    )
 
     assert report["kind"] == "research_report"
     assert proposal["kind"] == "strategy_proposal"
+    assert opportunity_report["kind"] == "opportunity_report"
     assert proposal["strategy_name"] == "oi_confirmed_momentum"
+    assert opportunity_report["strategy_name"] == "oi_confirmed_momentum"
     assert proposal["data_requirements"] == report["required_data"]
     assert "open_interest" in proposal["data_requirements"]
     assert "perp_candles" in proposal["data_requirements"]
@@ -166,7 +171,18 @@ def test_oi_confirmed_momentum_artifacts_are_machine_readable() -> None:
     assert "mark_price" in proposal["data_requirements"]
     assert any("Operator fit" in note for note in report["evidence_notes"])
     assert any("Venue boundary" in note for note in report["evidence_notes"])
+    assert "deterministic fixture" in opportunity_report["title"]
+    assert opportunity_report["opportunity_count"] == 1
+    assert opportunity_report["opportunities"][0]["metadata"]["price_return_bps"] == "200.00"
+    assert opportunity_report["opportunities"][0]["metadata"]["oi_change_pct"] == "6.00"
+    assert opportunity_report["opportunities"][0]["failure_modes"] == [
+        "requires_oi_venue_definition_before_validation"
+    ]
     assert "packages/strategies/oi_momentum.py" in proposal["candidate_files"]
+    assert (
+        "artifacts/strategies/oi_confirmed_momentum/opportunity_report.json"
+        in proposal["candidate_files"]
+    )
 
 
 def test_oi_confirmed_momentum_artifacts_match_supported_schema_fields() -> None:
@@ -198,6 +214,25 @@ def test_oi_confirmed_momentum_artifacts_match_supported_schema_fields() -> None
         "test_plan",
         "risk_controls",
         "candidate_files",
+    }
+
+
+def test_oi_confirmed_momentum_opportunity_report_matches_supported_schema_fields() -> None:
+    opportunity_report = _read_json(
+        ARTIFACT_ROOTS["oi_confirmed_momentum"] / "opportunity_report.json"
+    )
+
+    assert set(opportunity_report) == {
+        "kind",
+        "title",
+        "created_by",
+        "created_at",
+        "strategy_name",
+        "strategy_version",
+        "data_window",
+        "opportunity_count",
+        "opportunities",
+        "result_hash",
     }
 
 

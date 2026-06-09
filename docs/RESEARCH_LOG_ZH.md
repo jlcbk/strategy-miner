@@ -504,3 +504,24 @@
 ### 状态结论
 
 #5 继续保持 `strategy:blocked-data`：当前缺少目标窗口的 orderbook、trade/candle 和 fee 分区，且历史 orderbook 不能由当前 snapshot collector 回补。该方向在验证前不得演变成独立高频做市或极低延迟策略。
+
+## 2026-06-09：#3 OI momentum fixture opportunity report
+
+本轮将 #3 的最小 replay 输出沉淀为机器可读 `opportunity_report` fixture artifact：
+
+- `artifacts/strategies/oi_confirmed_momentum/opportunity_report.json`
+
+### report 内容
+
+- `kind`：`opportunity_report`
+- `strategy_name`：`oi_confirmed_momentum`
+- `strategy_version`：`0.1.0`
+- `opportunity_count`：`1`
+- `result_hash`：基于最小 replay result 的稳定 sha256。
+- 输出单腿：`perp buy`。
+- 关键 metadata：`price_return_bps=200.00`、`oi_change_pct=6.00`、`funding_rate=0.0002`、`direction=buy`。
+- `failure_modes`：`requires_oi_venue_definition_before_validation`。
+
+### 边界
+
+该 report 标题明确为 deterministic fixture opportunity report。它用于验证 artifact/schema/replay 链路，不代表真实历史回放通过，也不应触发 `strategy:validation-ready` 状态变更。#3 继续保持 `strategy:blocked-data`，直到真实 data lake 覆盖目标窗口，并固定 OI venue definition。

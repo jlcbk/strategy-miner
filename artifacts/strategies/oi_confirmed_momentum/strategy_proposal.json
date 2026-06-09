@@ -63,6 +63,7 @@
   "candidate_files": [
     "artifacts/strategies/oi_confirmed_momentum/research_report.json",
     "artifacts/strategies/oi_confirmed_momentum/strategy_proposal.json",
+    "artifacts/strategies/oi_confirmed_momentum/opportunity_report.json",
     "packages/strategies/oi_momentum.py"
   ]
 }
