@@ -142,6 +142,14 @@ python3 -m apps.cli.main run-tool plan_data_collection_commands --payload-json '
 - Bybit `trade` -> `historical-trades`
 - 其他交易所或事件类型会标记为 blocked，并返回尚未接入的原因
 
+命令规划会给每个 job 标注执行风险：
+
+- `low`：小 REST 数据，例如 `funding`、`open_interest`
+- `medium`：中等归档数据，例如 1m `mark`
+- `high`：大归档数据，例如逐笔 `trade`，默认需要人工确认后再执行
+
+因此验证前补数应优先跑 `low` / `medium` 命令，等磁盘和下载窗口确认后再跑 `high` 命令。
+
 ## 三个月数据规模估算
 
 如果采集范围是：

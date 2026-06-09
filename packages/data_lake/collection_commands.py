@@ -16,6 +16,9 @@ class CollectorCommand:
     supported: bool
     command: list[str]
     reason: str = ""
+    risk_tier: str = "unknown"
+    requires_confirmation: bool = True
+    execution_group: str = "unknown"
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -28,6 +31,9 @@ class CollectorCommand:
             "supported": self.supported,
             "command": self.command,
             "reason": self.reason,
+            "risk_tier": self.risk_tier,
+            "requires_confirmation": self.requires_confirmation,
+            "execution_group": self.execution_group,
         }
 
 
@@ -35,12 +41,14 @@ class CollectorCommand:
 class CollectorCommandPlan:
     supported_count: int
     blocked_count: int
+    risk_counts: dict[str, int]
     commands: list[CollectorCommand]
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "supported_count": self.supported_count,
             "blocked_count": self.blocked_count,
+            "risk_counts": self.risk_counts,
             "commands": [command.to_dict() for command in self.commands],
         }
 
@@ -67,6 +75,7 @@ def plan_data_collection_commands(
     return CollectorCommandPlan(
         supported_count=sum(1 for command in commands if command.supported),
         blocked_count=sum(1 for command in commands if not command.supported),
+        risk_counts=_risk_counts(commands),
         commands=commands,
     )
 
@@ -94,6 +103,7 @@ def _command_for_job(
         current_date=current_date,
     )
     if reason:
+        risk_tier = _risk_tier(event_type)
         return CollectorCommand(
             job_id=job_id,
             exchange=exchange,
@@ -104,8 +114,12 @@ def _command_for_job(
             supported=False,
             command=[],
             reason=reason,
+            risk_tier=risk_tier,
+            requires_confirmation=_requires_confirmation(risk_tier),
+            execution_group=_execution_group(event_type),
         )
 
+    risk_tier = _risk_tier(event_type)
     command = [
         python_bin,
         "-m",
@@ -133,6 +147,9 @@ def _command_for_job(
         day=day.isoformat(),
         supported=True,
         command=command,
+        risk_tier=risk_tier,
+        requires_confirmation=_requires_confirmation(risk_tier),
+        execution_group=_execution_group(event_type),
     )
 
 
@@ -172,3 +189,33 @@ def _collector_subcommand(event_type: str) -> str:
         "funding": "funding",
         "open_interest": "open-interest",
     }[event_type]
+
+
+def _risk_tier(event_type: str) -> str:
+    if event_type in {"funding", "open_interest"}:
+        return "low"
+    if event_type == "mark":
+        return "medium"
+    if event_type == "trade":
+        return "high"
+    return "unknown"
+
+
+def _requires_confirmation(risk_tier: str) -> bool:
+    return risk_tier in {"high", "unknown"}
+
+
+def _execution_group(event_type: str) -> str:
+    return {
+        "funding": "small_rest",
+        "open_interest": "small_rest",
+        "mark": "archive_mark",
+        "trade": "archive_trade",
+    }.get(event_type, "unknown")
+
+
+def _risk_counts(commands: list[CollectorCommand]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for command in commands:
+        counts[command.risk_tier] = counts.get(command.risk_tier, 0) + 1
+    return counts

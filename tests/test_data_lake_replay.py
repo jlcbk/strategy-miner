@@ -238,11 +238,17 @@ def test_plan_data_collection_commands_marks_supported_and_blocked_jobs() -> Non
 
     assert plan.supported_count == 1
     assert plan.blocked_count == 1
+    assert plan.risk_counts == {"high": 1, "low": 1}
     assert plan.commands[0].command[:4] == [
         "python3",
         "-m",
         "apps.collector.main",
         "historical-trades",
     ]
+    assert plan.commands[0].risk_tier == "high"
+    assert plan.commands[0].requires_confirmation is True
+    assert plan.commands[0].execution_group == "archive_trade"
     assert plan.commands[1].supported is False
+    assert plan.commands[1].risk_tier == "low"
+    assert plan.commands[1].requires_confirmation is False
     assert plan.commands[1].reason == "okx funding collector 尚未接入"

@@ -107,6 +107,7 @@ def test_plan_data_collection_commands_tool_maps_jobs_to_collector_cli() -> None
     plan = result.payload["command_plan"]
     assert plan["supported_count"] == 1
     assert plan["blocked_count"] == 1
+    assert plan["risk_counts"] == {"medium": 1, "low": 1}
     assert plan["commands"][0]["command"] == [
         "python3",
         "-m",
@@ -125,7 +126,12 @@ def test_plan_data_collection_commands_tool_maps_jobs_to_collector_cli() -> None
         "--download-dir",
         "var/downloads",
     ]
+    assert plan["commands"][0]["risk_tier"] == "medium"
+    assert plan["commands"][0]["requires_confirmation"] is False
+    assert plan["commands"][0]["execution_group"] == "archive_mark"
     assert plan["commands"][1]["supported"] is False
+    assert plan["commands"][1]["risk_tier"] == "low"
+    assert plan["commands"][1]["requires_confirmation"] is False
     assert "最近约 1 个月" in plan["commands"][1]["reason"]
 
 
