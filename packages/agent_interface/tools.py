@@ -17,6 +17,7 @@ from packages.strategies import (
     CrossExchangeSpreadStrategy,
     FundingCarryStrategy,
     FuturesBasisStrategy,
+    OpenInterestMomentumStrategy,
 )
 
 
@@ -61,7 +62,12 @@ def available_tools() -> list[dict[str, Any]]:
 def run_tool(name: str, payload: dict[str, Any] | None = None) -> ToolResult:
     payload = payload or {}
     if name == "list_strategies":
-        strategies = [CrossExchangeSpreadStrategy(), FundingCarryStrategy(), FuturesBasisStrategy()]
+        strategies = [
+            CrossExchangeSpreadStrategy(),
+            FundingCarryStrategy(),
+            FuturesBasisStrategy(),
+            OpenInterestMomentumStrategy(),
+        ]
         return ToolResult(
             ok=True,
             payload={

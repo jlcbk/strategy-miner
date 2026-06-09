@@ -9,6 +9,7 @@ from packages.strategies.interface import (
     StrategyPlugin,
     StrategyRegistry,
 )
+from packages.strategies.oi_momentum import OpenInterestMomentumStrategy
 
 __all__ = [
     "CrossExchangeSpreadStrategy",
@@ -16,6 +17,7 @@ __all__ = [
     "FundingCarryStrategy",
     "FuturesBasisStrategy",
     "MarketState",
+    "OpenInterestMomentumStrategy",
     "Opportunity",
     "OpportunityLeg",
     "StrategyPlugin",

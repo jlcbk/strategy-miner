@@ -67,7 +67,7 @@ def test_agent_tools_return_json_ready_payloads() -> None:
 
     strategies = run_tool("list_strategies")
     assert strategies.ok
-    assert len(strategies.payload["strategies"]) == 3
+    assert len(strategies.payload["strategies"]) == 4
 
 
 def test_rank_strategy_candidates_tool_prioritizes_validation_ready_candidate() -> None:

@@ -45,3 +45,20 @@
 - #3 已解除缺模型阻塞；下一步创建 OI + candle + funding 的最小 fixture。
 - #4 可以继续作为 proposed，但需要先写清楚预分配库存、保证金和 depth/volume 采样窗口。
 - #5 保持 `strategy:blocked-data`，直到 orderbook/trades 采集策略明确。
+
+## 2026-06-09：#3 OI momentum 最小 evaluator
+
+本轮为 [#3](https://github.com/jlcbk/strategy-miner/issues/3) 新增 `oi_confirmed_momentum` 策略 evaluator 和确定性 fixture。
+
+### 验证结果
+
+- `list_strategies` 已暴露 `oi_confirmed_momentum`，required data 为 `open_interest`、`mark`、`funding`。
+- fixture 覆盖 OI 和价格同向上升时输出候选机会。
+- fixture 覆盖 funding 过热时过滤候选机会。
+- 重新运行研究漏斗后，#3 分数从 74.00 提升到 82.00，推荐状态为 `queued_for_validation`。
+
+### 下一步
+
+- 将 #3 标记为 `strategy:validation-ready`。
+- 后续验证前仍需比较 Binance / OKX / Bybit / Bitget 的 OI 口径、采样间隔和数据延迟。
+- 该 evaluator 仍是研究候选，不能用于真实交易或自动部署。
