@@ -1,0 +1,65 @@
+{
+  "kind": "strategy_proposal",
+  "title": "Order-book imbalance short-horizon filter",
+  "created_by": "codex",
+  "created_at": "2026-06-09T00:00:00+00:00",
+  "strategy_name": "orderbook_imbalance_filter",
+  "hypothesis": "top N 盘口买卖深度不平衡和最近 order flow imbalance 可能在 1m 到 5m 窗口内提供短期方向过滤信息；该信号应作为已有分钟级策略的入场过滤器，而不是独立高频做市或极低延迟交易策略。",
+  "evaluator_contract": {
+    "inputs": [
+      "top20 orderbook snapshots sampled around 1s",
+      "trade stream aggregated into 1m and 5m buy/sell flow proxies",
+      "base strategy signal to be filtered",
+      "fee and slippage assumptions",
+      "forward return labels over 1m, 3m and 5m windows"
+    ],
+    "outputs": [
+      "symbol",
+      "market_type",
+      "obi_top_n",
+      "order_flow_imbalance",
+      "filter_decision",
+      "forward_return_bps buckets",
+      "estimated incremental improvement after costs"
+    ],
+    "entry_rules": [
+      "base strategy emits a candidate signal first",
+      "orderbook snapshot is not stale beyond 3 seconds",
+      "obi_top_n aligns with candidate direction and exceeds configured threshold",
+      "recent trade flow does not contradict the candidate direction",
+      "fee and slippage assumptions do not erase the expected filter benefit"
+    ],
+    "exit_rules": [
+      "base strategy exit rule fires",
+      "filter is evaluated only at entry and does not create standalone positions",
+      "orderbook data becomes stale or missing",
+      "spread widens or depth drops below target capacity threshold"
+    ]
+  },
+  "data_requirements": [
+    "orderbook",
+    "trades",
+    "candles",
+    "fees"
+  ],
+  "test_plan": [
+    "先用 BTCUSDT、ETHUSDT、SOLUSDT 的 spot/perp top20 orderbook snapshot 构造最小 fixture。",
+    "计算 top5、top10、top20 OBI，并比较 1m、3m、5m forward return 的方向命中率。",
+    "把 OBI 作为已有动量或均值回归信号的过滤器，比较过滤前后的净 edge、回撤和交易次数。",
+    "加入 trade flow 聚合，测试静态盘口深度与主动成交压力一致和背离时的表现。",
+    "显式扣除 taker fee、滑点和错过交易机会的机会成本。",
+    "只在数据覆盖和稳定性证明后再考虑 evaluator；不做独立高频策略。"
+  ],
+  "risk_controls": [
+    "禁止把该方向推进成无人值守高频做市或极低延迟抢跑策略。",
+    "限制在 BTC、ETH、SOL 等高流动性市场，低流动性 alt 暂不进入早期验证。",
+    "orderbook snapshot 超过 3s 视为 stale，不参与过滤判断。",
+    "必须同时检查 trade flow，避免只依赖容易被 spoofing 污染的静态盘口深度。",
+    "只有当过滤器改善已有策略的成本后结果时才保留；单独 OBI edge 不作为交易建议。",
+    "不标记为 production-ready，不触发真实交易或 live trading。"
+  ],
+  "candidate_files": [
+    "artifacts/strategies/orderbook_imbalance_filter/research_report.json",
+    "artifacts/strategies/orderbook_imbalance_filter/strategy_proposal.json"
+  ]
+}

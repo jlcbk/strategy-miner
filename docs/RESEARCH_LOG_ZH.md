@@ -471,3 +471,36 @@
 ### 状态结论
 
 #3 继续保持 `strategy:blocked-data`，因为真实验证仍需要补齐目标窗口的 open interest、mark、trade/perp candle 和 funding 分区，并固定 OI venue definition。研究漏斗的 `queued_for_validation` 只是结构评分，不代表真实历史验证通过。
+
+## 2026-06-09：#5 Order-book imbalance filter artifact 化
+
+本轮将 [#5](https://github.com/jlcbk/strategy-miner/issues/5) 从 Issue 文本整理为机器可读 artifact：
+
+- `artifacts/strategies/orderbook_imbalance_filter/research_report.json`
+- `artifacts/strategies/orderbook_imbalance_filter/strategy_proposal.json`
+
+### 操作适配判断
+
+- 资金规模：只适合小到中等资金先做模拟过滤器，不作为独立容量策略。
+- 持仓周期：1m 到 5m 过滤窗口，服务于分钟级策略入场。
+- 自动化要求：只允许离线研究、回放和告警；不进入无人值守高频执行。
+- 执行假设：已有基础策略先发出信号，OBI/OFI 只判断是否过滤不利盘口。
+- 主要风险：spoofing、撤单噪声、1s top20 snapshot 信息不足、短周期 edge 被手续费和滑点吞噬。
+
+### 状态结论
+
+#5 的研究产物现在可以被 schema、研究漏斗和 data coverage 工具消费。
+
+### 工具验证结果
+
+- `plan_strategy_validation` readiness：`ready_for_fixture`。
+- `rank_strategy_candidates` total_score：`45.00`。
+- 推荐状态：`proposed`。
+- `check_data_coverage` 范围：Binance，BTCUSDT / ETHUSDT / SOLUSDT，spot + perp，2026-06-08。
+- 覆盖率：`0.04`，`covered_count=1`，`required_count=24`。
+- `generate_data_collection_jobs` 生成 17 个物理补数 job。
+- 缺失事件类型：`orderbook`、`trade`、`fee`。
+
+### 状态结论
+
+#5 继续保持 `strategy:blocked-data`：当前缺少目标窗口的 orderbook、trade/candle 和 fee 分区，且历史 orderbook 不能由当前 snapshot collector 回补。该方向在验证前不得演变成独立高频做市或极低延迟策略。

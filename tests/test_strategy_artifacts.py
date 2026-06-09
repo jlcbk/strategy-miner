@@ -8,6 +8,7 @@ ARTIFACT_ROOTS = {
     ),
     "funding_carry_vol_filter": Path("artifacts/strategies/funding_carry_vol_filter"),
     "oi_confirmed_momentum": Path("artifacts/strategies/oi_confirmed_momentum"),
+    "orderbook_imbalance_filter": Path("artifacts/strategies/orderbook_imbalance_filter"),
     "quarterly_basis_convergence": Path("artifacts/strategies/quarterly_basis_convergence"),
 }
 
@@ -170,6 +171,54 @@ def test_oi_confirmed_momentum_artifacts_are_machine_readable() -> None:
 
 def test_oi_confirmed_momentum_artifacts_match_supported_schema_fields() -> None:
     report, proposal = _read_artifacts("oi_confirmed_momentum")
+
+    assert set(report) == {
+        "kind",
+        "title",
+        "created_by",
+        "created_at",
+        "summary",
+        "source_urls",
+        "claims",
+        "formulas",
+        "cost_items",
+        "failure_modes",
+        "required_data",
+        "evidence_notes",
+    }
+    assert set(proposal) == {
+        "kind",
+        "title",
+        "created_by",
+        "created_at",
+        "strategy_name",
+        "hypothesis",
+        "evaluator_contract",
+        "data_requirements",
+        "test_plan",
+        "risk_controls",
+        "candidate_files",
+    }
+
+
+def test_orderbook_imbalance_filter_artifacts_are_machine_readable() -> None:
+    report, proposal = _read_artifacts("orderbook_imbalance_filter")
+
+    assert report["kind"] == "research_report"
+    assert proposal["kind"] == "strategy_proposal"
+    assert proposal["strategy_name"] == "orderbook_imbalance_filter"
+    assert proposal["data_requirements"] == report["required_data"]
+    assert "orderbook" in proposal["data_requirements"]
+    assert "trades" in proposal["data_requirements"]
+    assert "fees" in proposal["data_requirements"]
+    assert any("Operator fit" in note for note in report["evidence_notes"])
+    assert any("Sampling policy" in note for note in report["evidence_notes"])
+    assert "过滤器" in proposal["hypothesis"]
+    assert not any("packages/strategies/" in path for path in proposal["candidate_files"])
+
+
+def test_orderbook_imbalance_filter_artifacts_match_supported_schema_fields() -> None:
+    report, proposal = _read_artifacts("orderbook_imbalance_filter")
 
     assert set(report) == {
         "kind",

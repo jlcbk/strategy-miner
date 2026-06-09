@@ -1,0 +1,54 @@
+{
+  "kind": "research_report",
+  "title": "Order-book imbalance short-horizon filter research report",
+  "created_by": "codex",
+  "created_at": "2026-06-09T00:00:00+00:00",
+  "summary": "盘口买卖深度不平衡和订单流不平衡可能在 1m 到 5m 窗口内提供短期方向过滤信息。但按当前 operator profile，该方向不应作为独立高频做市或极低延迟策略推进，而应先作为中低频动量、均值回归或 carry 策略的入场过滤器，验证它是否能减少盘口反向压力下的错误入场。",
+  "source_urls": [
+    "https://hftbacktest.readthedocs.io/en/latest/tutorials/Market%20Making%20with%20Alpha%20-%20Order%20Book%20Imbalance.html",
+    "https://arxiv.org/html/2602.00776v1",
+    "https://github.com/nkaz001/hftbacktest/blob/master/examples/Market%20Making%20with%20Alpha%20-%20Order%20Book%20Imbalance.ipynb"
+  ],
+  "claims": [
+    "Order book imbalance 是常见 microstructure 特征，可用 top N bid/ask depth 的相对强弱衡量短期买卖压力。",
+    "Order flow imbalance 可补充静态盘口深度，帮助区分真实主动成交压力和挂单噪声。",
+    "Crypto 盘口透明度较高，但 spoofing、撤单、撮合延迟和采样频率不足会显著污染短周期信号。",
+    "对当前操作条件而言，OBI 更适合作为 1m 到 5m 过滤器，而不是独立高频 alpha 或做市策略。",
+    "只有当扣除 taker fee、滑点和数据采集成本后，已有中低频策略的风险调整结果显著改善，才值得继续推进。"
+  ],
+  "formulas": [
+    "obi_top_n = (sum_bid_depth_top_n - sum_ask_depth_top_n) / (sum_bid_depth_top_n + sum_ask_depth_top_n)",
+    "ofi = aggressive_buy_volume - aggressive_sell_volume over lookback_window",
+    "filter_pass_long = base_signal_long and obi_top_n >= min_obi_threshold and ofi >= min_ofi_threshold",
+    "filter_pass_short = base_signal_short and obi_top_n <= -min_obi_threshold and ofi <= -min_ofi_threshold",
+    "forward_return_bps = (future_mid_price - current_mid_price) / current_mid_price * 10000"
+  ],
+  "cost_items": [
+    "taker fee 或被动挂单未成交的机会成本",
+    "1m 到 5m 窗口内的滑点和盘口冲击",
+    "orderbook 1s snapshot 与真实可成交盘口之间的延迟成本",
+    "高频 orderbook / trade 数据采集和存储成本",
+    "错误过滤导致错过原策略正收益机会的机会成本"
+  ],
+  "failure_modes": [
+    "1s top20 snapshot 可能不足以恢复真实 order flow，导致过滤器信号滞后。",
+    "Spoofing、撤单和短时流动性幻觉会让盘口深度不平衡失真。",
+    "短周期方向优势可能被 taker fee、滑点和冲击成本完全吞噬。",
+    "如果被实现成独立高频交易或做市策略，会违背当前 operator profile。",
+    "低流动性 alt 的盘口不平衡更容易被单笔订单扰动，不适合作为早期验证范围。",
+    "历史 orderbook 难以回补，当前只能从 collector 上线后积累热数据。"
+  ],
+  "required_data": [
+    "orderbook",
+    "trades",
+    "candles",
+    "fees"
+  ],
+  "evidence_notes": [
+    "Operator fit: 仅适合作为分钟级过滤器研究；不要求无人值守高频执行，不参与极低延迟竞争。",
+    "Market scope: 早期只看 Binance / Bybit 的 BTC、ETH、SOL spot/perp，高流动性优先。",
+    "Sampling policy: 使用 docs/PIPELINES_AND_STORAGE_ZH.md 的 MVP 政策，即 top20 bid/ask、1s snapshot、3s staleness、1m/5m trade 聚合。",
+    "Execution boundary: 该策略只允许评估对已有中低频策略的过滤增益，不生成独立 live trading 配置。",
+    "Current status: orderbook snapshot collector 只能采当前盘口，不能回补历史；本地 data lake 仍缺 orderbook、trade 和 fee 分区，因此继续保持 strategy:blocked-data。"
+  ]
+}
