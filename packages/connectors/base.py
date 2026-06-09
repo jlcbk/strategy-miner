@@ -103,7 +103,7 @@ def csv_rows_from_archive(raw: bytes, compression: str) -> list[dict[str, str]]:
     rows = list(reader)
     if not rows:
         return []
-    if has_header:
+    if has_header and _looks_like_header(rows[0]):
         header = [column.strip() for column in rows[0]]
         body = rows[1:]
     else:
@@ -122,3 +122,7 @@ def _decompress(raw: bytes, compression: str) -> bytes:
     if compression == "none":
         return raw
     raise ValueError(f"不支持的压缩格式：{compression}")
+
+
+def _looks_like_header(row: list[str]) -> bool:
+    return any(any(char.isalpha() for char in column) for column in row)

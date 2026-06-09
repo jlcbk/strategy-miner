@@ -14,6 +14,7 @@ from packages.normalization.models import (
     EventType,
     Exchange,
     FundingPayload,
+    MarkPricePayload,
     MarketEvent,
     MarketType,
     OpenInterestPayload,
@@ -72,6 +73,37 @@ class BinanceConnector:
                 ),
             )
             events.append(event)
+        return events
+
+    def parse_mark_price_klines(
+        self,
+        request: HistoricalDataRequest,
+        raw: bytes,
+    ) -> list[MarketEvent]:
+        if request.event_type != EventType.MARK:
+            raise ValueError("parse_mark_price_klines 只接受 MARK 请求")
+        normalized = normalize_symbol(self.exchange, request.symbol, request.market_type)
+        events: list[MarketEvent] = []
+        for row in csv_rows_from_archive(raw, "zip"):
+            open_time = row.get("open_time") or row.get("open time") or row.get("0")
+            close = row.get("close") or row.get("4")
+            if open_time is None or close is None:
+                continue
+            events.append(
+                MarketEvent(
+                    exchange=self.exchange,
+                    market_type=request.market_type,
+                    symbol=normalized.symbol,
+                    base_asset=normalized.base_asset,
+                    quote_asset=normalized.quote_asset,
+                    event_type=EventType.MARK,
+                    exchange_ts=_binance_ts(open_time),
+                    local_ts=utc_now(),
+                    source="binance_public_mark_price_klines",
+                    sequence_id=f"{request.symbol.upper()}:{open_time}",
+                    payload=MarkPricePayload(mark_price=close),
+                )
+            )
         return events
 
     def websocket_subscription(

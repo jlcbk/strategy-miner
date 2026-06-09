@@ -1,3 +1,5 @@
+import io
+import zipfile
 from datetime import date, datetime, timezone
 
 from packages.connectors.base import HistoricalDataRequest
@@ -21,6 +23,24 @@ def test_binance_public_trade_archive_url() -> None:
     assert file.url == (
         "https://data.binance.vision/data/spot/daily/trades/"
         "BTCUSDT/BTCUSDT-trades-2024-01-02.zip"
+    )
+    assert file.compression == "zip"
+
+
+def test_binance_public_mark_price_archive_url() -> None:
+    request = HistoricalDataRequest(
+        exchange=Exchange.BINANCE,
+        market_type=MarketType.PERP,
+        symbol="BTCUSDT",
+        event_type=EventType.MARK,
+        day=date(2024, 1, 2),
+        interval="1m",
+    )
+    file = BinanceConnector().historical_file(request)
+
+    assert file.url == (
+        "https://data.binance.vision/data/futures/um/daily/markPriceKlines/"
+        "BTCUSDT/1m/BTCUSDT-1m-2024-01-02.zip"
     )
     assert file.compression == "zip"
 
@@ -142,6 +162,41 @@ def test_binance_open_interest_history_parser_normalizes_events() -> None:
     }
 
 
+def test_binance_mark_price_kline_parser_uses_close_price() -> None:
+    request = HistoricalDataRequest(
+        exchange=Exchange.BINANCE,
+        market_type=MarketType.PERP,
+        symbol="BTCUSDT",
+        event_type=EventType.MARK,
+        day=date(2024, 1, 1),
+        interval="1m",
+    )
+    raw = _zip_csv(
+        "BTCUSDT-1m-2024-01-01.csv",
+        "\n".join(
+            [
+                "1704067200000,42000.1,42100.2,41900.3,42050.4,0,1704067259999,0,0,0,0,0",
+                "1704067260000,42050.4,42120.0,42040.0,42100.0,0,1704067319999,0,0,0,0,0",
+            ]
+        ),
+    )
+
+    events = BinanceConnector().parse_mark_price_klines(request, raw)
+
+    assert len(events) == 2
+    event = events[0]
+    assert event.exchange == Exchange.BINANCE
+    assert event.market_type == MarketType.PERP
+    assert event.symbol == "BTC-USDT"
+    assert event.event_type == EventType.MARK
+    assert event.partition_date == "2024-01-01"
+    assert event.sequence_id == "BTCUSDT:1704067200000"
+    assert event.payload == {
+        "mark_price": "42050.4",
+        "index_price": None,
+    }
+
+
 def test_binance_funding_rate_history_endpoint_uses_day_window_params() -> None:
     endpoint = BinanceConnector().funding_rate_history_endpoint(
         market_type=MarketType.PERP,
@@ -188,3 +243,10 @@ def test_binance_funding_rate_history_parser_normalizes_events() -> None:
         "next_funding_ts": None,
         "interval_hours": "8",
     }
+
+
+def _zip_csv(name: str, content: str) -> bytes:
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as archive:
+        archive.writestr(name, content)
+    return buffer.getvalue()

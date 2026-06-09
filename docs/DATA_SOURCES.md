@@ -37,3 +37,12 @@ Funding rate 用统一 `EventType.FUNDING` 和 `FundingPayload` 表达。当前 
   - 历史序列已接 `https://fapi.binance.com/fapi/v1/fundingRate`
   - 默认按日窗口采集；每个 symbol 通常每天 3 条 8 小时 funding 记录。
   - 响应中的 `markPrice` 只作为交易所原始上下文，当前不会当作分钟级 `mark` 分区写入，避免误导 candle / mark 覆盖率。
+
+## Mark Price
+
+Mark price 用统一 `EventType.MARK` 和 `MarkPricePayload` 表达。当前 collector 先接入 Binance USD-M Futures 公开归档：
+
+- Binance USD-M Futures：
+  - 归档路径：`https://data.binance.vision/data/futures/um/daily/markPriceKlines/{symbol}/1m/{symbol}-1m-{day}.zip`
+  - 当前将 1m mark price kline 的 close price 写入 `MarkPricePayload.mark_price`。
+  - 该分区可满足 `perp_mark_price` 覆盖率；是否由 mark kline 直接派生 candle，需要后续 candle 聚合策略单独确认。

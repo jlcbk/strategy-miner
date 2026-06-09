@@ -1,4 +1,6 @@
 from datetime import date
+import io
+import zipfile
 
 import pytest
 
@@ -80,3 +82,42 @@ def test_ingest_funding_writes_data_lake_partition(tmp_path, monkeypatch) -> Non
     assert "market_type=perp" in written[0].parts
     assert "symbol=BTC-USDT" in written[0].parts
     assert "event_type=funding" in written[0].parts
+
+
+def test_ingest_historical_mark_writes_data_lake_partition(tmp_path, monkeypatch) -> None:
+    def fake_download_file(file, target_dir):
+        assert file.request.event_type.value == "mark"
+        target = tmp_path / "mark.zip"
+        target.write_bytes(
+            _zip_csv(
+                "BTCUSDT-1m-2024-01-01.csv",
+                "1704067200000,42000.1,42100.2,41900.3,42050.4,0,1704067259999,0,0,0,0,0",
+            )
+        )
+        return target
+
+    monkeypatch.setattr(collector_main, "download_file", fake_download_file)
+
+    written = collector_main.ingest_historical_mark(
+        exchange=Exchange.BINANCE,
+        market_type=MarketType.PERP,
+        symbol="BTCUSDT",
+        day=date(2024, 1, 1),
+        download_dir=tmp_path / "downloads",
+        data_lake_root=tmp_path,
+    )
+
+    assert len(written) == 1
+    assert written[0].exists()
+    assert "exchange=binance" in written[0].parts
+    assert "date=2024-01-01" in written[0].parts
+    assert "market_type=perp" in written[0].parts
+    assert "symbol=BTC-USDT" in written[0].parts
+    assert "event_type=mark" in written[0].parts
+
+
+def _zip_csv(name: str, content: str) -> bytes:
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as archive:
+        archive.writestr(name, content)
+    return buffer.getvalue()

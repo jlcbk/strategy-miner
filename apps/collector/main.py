@@ -39,6 +39,31 @@ def ingest_historical_trades(
     return DataLakeWriter(data_lake_root).write_events(events)
 
 
+def ingest_historical_mark(
+    *,
+    exchange: Exchange,
+    market_type: MarketType,
+    symbol: str,
+    day: date,
+    download_dir: Path,
+    data_lake_root: Path,
+) -> list[Path]:
+    if exchange != Exchange.BINANCE:
+        raise NotImplementedError("historical-mark collector 当前先支持 Binance")
+    connector = BinanceConnector()
+    request = HistoricalDataRequest(
+        exchange=exchange,
+        market_type=market_type,
+        symbol=symbol,
+        event_type=EventType.MARK,
+        day=day,
+        interval="1m",
+    )
+    archive = download_file(connector.historical_file(request), download_dir)
+    events = connector.parse_mark_price_klines(request, archive.read_bytes())
+    return DataLakeWriter(data_lake_root).write_events(events)
+
+
 def ingest_open_interest(
     *,
     exchange: Exchange,
@@ -112,7 +137,13 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Strategy Miner collector 工具")
     parser.add_argument(
         "command",
-        choices=["historical-trades", "open-interest", "funding", "show-ws"],
+        choices=[
+            "historical-trades",
+            "historical-mark",
+            "open-interest",
+            "funding",
+            "show-ws",
+        ],
     )
     parser.add_argument("--exchange", choices=["binance", "bybit"], default="binance")
     parser.add_argument("--market-type", choices=["spot", "perp", "future"], default="spot")
@@ -159,6 +190,19 @@ def main(argv: list[str] | None = None) -> int:
             day=date.fromisoformat(args.day),
             data_lake_root=Path(args.data_lake_root),
             limit=args.limit,
+        )
+        for path in written:
+            print(path)
+        return 0
+
+    if args.command == "historical-mark":
+        written = ingest_historical_mark(
+            exchange=exchange,
+            market_type=market_type,
+            symbol=args.symbol,
+            day=date.fromisoformat(args.day),
+            download_dir=Path(args.download_dir),
+            data_lake_root=Path(args.data_lake_root),
         )
         for path in written:
             print(path)
