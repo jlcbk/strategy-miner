@@ -553,3 +553,32 @@
 ### 边界
 
 #4 目前没有专用 evaluator，也没有真实 data lake 覆盖，因此不能生成交易候选。该 report 只用于让 artifact/schema/report 链路完整，并明确当前是 `strategy:blocked-data`。解除阻塞仍需要补齐 funding、mark/index、trade/perp candle、fee、instrument 和 depth_volume 分区，并验证预分配保证金假设。
+
+## 2026-06-09：#5 Order-book imbalance blocked-data opportunity report
+
+本轮为 #5 增加机器可读 `opportunity_report`，但它不是机会样本，而是 blocked-data fixture：
+
+- `artifacts/strategies/orderbook_imbalance_filter/opportunity_report.json`
+
+### report 内容
+
+- `kind`：`opportunity_report`
+- `strategy_name`：`orderbook_imbalance_filter`
+- `strategy_version`：`0.1.0`
+- `opportunity_count`：`0`
+- `opportunities`：空数组。
+- `result_hash`：基于 blocked-data fixture payload 的稳定 sha256。
+- 数据窗口：Binance / Bybit，BTCUSDT / ETHUSDT / SOLUSDT，spot + perp，2026-06-08。
+- 策略角色：只作为 1m 到 5m 过滤器，不作为独立高频策略。
+
+### 工具验证结果
+
+- `rank_strategy_candidates` total_score：`45.00`。
+- 推荐状态：`proposed`。
+- `check_data_coverage` 范围：Binance，BTCUSDT / ETHUSDT / SOLUSDT，spot + perp，2026-06-08。
+- 覆盖率：`0.04`，`covered_count=1`，`required_count=24`。
+- 缺失事件类型：`orderbook`、`trade`、`fee`。
+
+### 边界
+
+#5 目前没有专用 evaluator，也没有真实 orderbook / trade / fee 数据覆盖，因此不能生成交易候选。该 report 只用于让 artifact/schema/report 链路完整，并明确当前是 `strategy:blocked-data`。解除阻塞仍需要补齐目标窗口的 orderbook、trade/candle 和 fee 分区；历史 orderbook 不能由当前 snapshot collector 回补。

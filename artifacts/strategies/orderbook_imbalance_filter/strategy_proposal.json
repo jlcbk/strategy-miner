@@ -60,6 +60,7 @@
   ],
   "candidate_files": [
     "artifacts/strategies/orderbook_imbalance_filter/research_report.json",
-    "artifacts/strategies/orderbook_imbalance_filter/strategy_proposal.json"
+    "artifacts/strategies/orderbook_imbalance_filter/strategy_proposal.json",
+    "artifacts/strategies/orderbook_imbalance_filter/opportunity_report.json"
   ]
 }
