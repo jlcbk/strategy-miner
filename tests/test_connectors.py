@@ -80,6 +80,42 @@ def test_bybit_public_trade_archive_url() -> None:
     assert file.compression == "gzip"
 
 
+def test_bybit_low_risk_rest_endpoints_use_day_window_params() -> None:
+    start = datetime(2026, 6, 8, tzinfo=timezone.utc)
+    end = datetime(2026, 6, 9, tzinfo=timezone.utc)
+
+    funding = BybitConnector().funding_rate_history_endpoint(
+        market_type=MarketType.PERP,
+        symbol="BTCUSDT",
+        start_ts=start,
+        end_ts=end,
+    )
+    assert funding.url == "https://api.bybit.com/v5/market/funding/history"
+    assert funding.params["category"] == "linear"
+    assert funding.params["symbol"] == "BTCUSDT"
+    assert funding.params["startTime"] == "1780876800000"
+
+    oi = BybitConnector().open_interest_history_endpoint(
+        market_type=MarketType.PERP,
+        symbol="BTCUSDT",
+        start_ts=start,
+        end_ts=end,
+        interval="5min",
+    )
+    assert oi.url == "https://api.bybit.com/v5/market/open-interest"
+    assert oi.params["intervalTime"] == "5min"
+
+    mark = BybitConnector().mark_price_kline_endpoint(
+        market_type=MarketType.PERP,
+        symbol="BTCUSDT",
+        start_ts=start,
+        end_ts=end,
+        interval="5m",
+    )
+    assert mark.url == "https://api.bybit.com/v5/market/mark-price-kline"
+    assert mark.params["interval"] == "5"
+
+
 def test_websocket_subscriptions_cover_core_event_types() -> None:
     assert "btcusdt@trade" in BinanceConnector().websocket_subscription(
         market_type=MarketType.SPOT,
@@ -183,6 +219,35 @@ def test_binance_open_interest_history_parser_normalizes_events() -> None:
     }
 
 
+def test_bybit_open_interest_history_parser_normalizes_events() -> None:
+    events = BybitConnector().parse_open_interest_history(
+        market_type=MarketType.PERP,
+        symbol="BTCUSDT",
+        interval="5min",
+        rows={
+            "retCode": 0,
+            "result": {
+                "list": [
+                    {"openInterest": "12345.67", "timestamp": "1780876800000"},
+                    {"timestamp": "1780877100000"},
+                ]
+            },
+        },
+    )
+
+    assert len(events) == 1
+    event = events[0]
+    assert event.exchange == Exchange.BYBIT
+    assert event.event_type == EventType.OPEN_INTEREST
+    assert event.symbol == "BTC-USDT"
+    assert event.payload == {
+        "open_interest": "12345.67",
+        "open_interest_value_usd": None,
+        "unit": "contracts",
+        "interval": "5min",
+    }
+
+
 def test_binance_mark_price_kline_parser_uses_close_price() -> None:
     request = HistoricalDataRequest(
         exchange=Exchange.BINANCE,
@@ -216,6 +281,21 @@ def test_binance_mark_price_kline_parser_uses_close_price() -> None:
         "mark_price": "42050.4",
         "index_price": None,
     }
+
+
+def test_bybit_mark_price_kline_parser_uses_close_price() -> None:
+    events = BybitConnector().parse_mark_price_klines(
+        market_type=MarketType.PERP,
+        symbol="BTCUSDT",
+        rows={"result": {"list": [["1780876800000", "100", "110", "90", "105"]]}},
+    )
+
+    assert len(events) == 1
+    event = events[0]
+    assert event.exchange == Exchange.BYBIT
+    assert event.event_type == EventType.MARK
+    assert event.symbol == "BTC-USDT"
+    assert event.payload == {"mark_price": "105", "index_price": None}
 
 
 def test_binance_funding_rate_history_endpoint_uses_day_window_params() -> None:
@@ -259,6 +339,36 @@ def test_binance_funding_rate_history_parser_normalizes_events() -> None:
     assert event.event_type == EventType.FUNDING
     assert event.partition_date == "2024-01-01"
     assert event.sequence_id == "BTCUSDT:1704067200000"
+    assert event.payload == {
+        "rate": "0.00010000",
+        "next_funding_ts": None,
+        "interval_hours": "8",
+    }
+
+
+def test_bybit_funding_rate_history_parser_normalizes_events() -> None:
+    events = BybitConnector().parse_funding_rate_history(
+        market_type=MarketType.PERP,
+        symbol="BTCUSDT",
+        rows={
+            "result": {
+                "list": [
+                    {
+                        "symbol": "BTCUSDT",
+                        "fundingRate": "0.00010000",
+                        "fundingRateTimestamp": "1780876800000",
+                    },
+                    {"symbol": "BTCUSDT", "fundingRateTimestamp": "1780905600000"},
+                ]
+            }
+        },
+    )
+
+    assert len(events) == 1
+    event = events[0]
+    assert event.exchange == Exchange.BYBIT
+    assert event.event_type == EventType.FUNDING
+    assert event.symbol == "BTC-USDT"
     assert event.payload == {
         "rate": "0.00010000",
         "next_funding_ts": None,

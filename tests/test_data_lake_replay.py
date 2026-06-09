@@ -252,3 +252,47 @@ def test_plan_data_collection_commands_marks_supported_and_blocked_jobs() -> Non
     assert plan.commands[1].risk_tier == "low"
     assert plan.commands[1].requires_confirmation is False
     assert plan.commands[1].reason == "okx funding collector 尚未接入"
+
+
+def test_plan_data_collection_commands_supports_bybit_low_and_medium_risk_jobs() -> None:
+    plan = plan_data_collection_commands(
+        current_date=datetime(2026, 6, 9, tzinfo=timezone.utc).date(),
+        jobs=[
+            {
+                "id": "oi-job",
+                "exchange": "bybit",
+                "market_type": "perp",
+                "symbol": "BTCUSDT",
+                "event_type": "open_interest",
+                "start_ts": "2026-06-08T00:00:00+00:00",
+                "end_ts": "2026-06-09T00:00:00+00:00",
+            },
+            {
+                "id": "funding-job",
+                "exchange": "bybit",
+                "market_type": "perp",
+                "symbol": "BTCUSDT",
+                "event_type": "funding",
+                "start_ts": "2026-06-08T00:00:00+00:00",
+                "end_ts": "2026-06-09T00:00:00+00:00",
+            },
+            {
+                "id": "mark-job",
+                "exchange": "bybit",
+                "market_type": "perp",
+                "symbol": "BTCUSDT",
+                "event_type": "mark",
+                "start_ts": "2026-06-08T00:00:00+00:00",
+                "end_ts": "2026-06-09T00:00:00+00:00",
+            },
+        ],
+    )
+
+    assert plan.supported_count == 3
+    assert plan.blocked_count == 0
+    assert plan.risk_counts == {"low": 2, "medium": 1}
+    assert [command.command[3] for command in plan.commands] == [
+        "open-interest",
+        "funding",
+        "historical-mark",
+    ]

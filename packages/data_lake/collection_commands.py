@@ -177,7 +177,7 @@ def _unsupported_reason(
         if event_type == "open_interest" and day < current_date - timedelta(days=31):
             return "Binance open_interest 历史 REST 仅支持最近约 1 个月"
         return ""
-    if exchange == "bybit" and event_type == "trade":
+    if exchange == "bybit" and event_type in {"trade", "mark", "funding", "open_interest"}:
         return ""
     return f"{exchange} {event_type} collector 尚未接入"
 

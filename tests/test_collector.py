@@ -116,6 +116,77 @@ def test_ingest_historical_mark_writes_data_lake_partition(tmp_path, monkeypatch
     assert "event_type=mark" in written[0].parts
 
 
+def test_ingest_bybit_open_interest_writes_data_lake_partition(tmp_path, monkeypatch) -> None:
+    def fake_download_json(endpoint):
+        assert endpoint.url == "https://api.bybit.com/v5/market/open-interest"
+        return {"result": {"list": [{"openInterest": "12345.67", "timestamp": "1780876800000"}]}}
+
+    monkeypatch.setattr(collector_main, "download_json", fake_download_json)
+
+    written = collector_main.ingest_open_interest(
+        exchange=Exchange.BYBIT,
+        market_type=MarketType.PERP,
+        symbol="BTCUSDT",
+        day=date(2026, 6, 8),
+        data_lake_root=tmp_path,
+    )
+
+    assert len(written) == 1
+    assert "exchange=bybit" in written[0].parts
+    assert "event_type=open_interest" in written[0].parts
+
+
+def test_ingest_bybit_funding_writes_data_lake_partition(tmp_path, monkeypatch) -> None:
+    def fake_download_json(endpoint):
+        assert endpoint.url == "https://api.bybit.com/v5/market/funding/history"
+        return {
+            "result": {
+                "list": [
+                    {
+                        "symbol": "BTCUSDT",
+                        "fundingRate": "0.00010000",
+                        "fundingRateTimestamp": "1780876800000",
+                    }
+                ]
+            }
+        }
+
+    monkeypatch.setattr(collector_main, "download_json", fake_download_json)
+
+    written = collector_main.ingest_funding(
+        exchange=Exchange.BYBIT,
+        market_type=MarketType.PERP,
+        symbol="BTCUSDT",
+        day=date(2026, 6, 8),
+        data_lake_root=tmp_path,
+    )
+
+    assert len(written) == 1
+    assert "exchange=bybit" in written[0].parts
+    assert "event_type=funding" in written[0].parts
+
+
+def test_ingest_bybit_mark_writes_data_lake_partition(tmp_path, monkeypatch) -> None:
+    def fake_download_json(endpoint):
+        assert endpoint.url == "https://api.bybit.com/v5/market/mark-price-kline"
+        return {"result": {"list": [["1780876800000", "100", "110", "90", "105"]]}}
+
+    monkeypatch.setattr(collector_main, "download_json", fake_download_json)
+
+    written = collector_main.ingest_historical_mark(
+        exchange=Exchange.BYBIT,
+        market_type=MarketType.PERP,
+        symbol="BTCUSDT",
+        day=date(2026, 6, 8),
+        download_dir=tmp_path / "downloads",
+        data_lake_root=tmp_path,
+    )
+
+    assert len(written) == 1
+    assert "exchange=bybit" in written[0].parts
+    assert "event_type=mark" in written[0].parts
+
+
 def _zip_csv(name: str, content: str) -> bytes:
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w") as archive:

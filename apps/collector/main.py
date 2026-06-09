@@ -54,9 +54,27 @@ def ingest_historical_mark(
     download_dir: Path,
     data_lake_root: Path,
 ) -> list[Path]:
+    connector = CONNECTORS[exchange]
+    if exchange == Exchange.BYBIT:
+        start_ts, end_ts = _day_window(day)
+        endpoint = connector.mark_price_kline_endpoint(
+            market_type=market_type,
+            symbol=symbol,
+            start_ts=start_ts,
+            end_ts=end_ts,
+            interval="5",
+            limit=1000,
+        )
+        rows = download_json(endpoint)
+        events = connector.parse_mark_price_klines(
+            market_type=market_type,
+            symbol=symbol,
+            rows=rows,
+            interval="5",
+        )
+        return DataLakeWriter(data_lake_root).write_events(events)
     if exchange != Exchange.BINANCE:
-        raise NotImplementedError("historical-mark collector 当前先支持 Binance")
-    connector = BinanceConnector()
+        raise NotImplementedError("historical-mark collector 当前支持 Binance 和 Bybit")
     request = HistoricalDataRequest(
         exchange=exchange,
         market_type=market_type,
@@ -81,31 +99,41 @@ def ingest_open_interest(
     limit: int = 500,
     allow_stale_window: bool = False,
 ) -> list[Path]:
-    if exchange != Exchange.BINANCE:
-        raise NotImplementedError("open-interest collector 当前先支持 Binance")
-    if not allow_stale_window:
+    connector = CONNECTORS[exchange]
+    if exchange == Exchange.BINANCE and not allow_stale_window:
         latest_supported_start = datetime.now(timezone.utc).date() - timedelta(days=31)
         if day < latest_supported_start:
             raise ValueError(
                 "Binance open-interest history REST 仅支持最近约 1 个月数据；"
                 "更早窗口需要外部归档源或调整验证日期"
             )
-    connector = BinanceConnector()
     start_ts, end_ts = _day_window(day)
-    endpoint = connector.open_interest_history_endpoint(
-        market_type=market_type,
-        symbol=symbol,
-        start_ts=start_ts,
-        end_ts=end_ts,
-        interval=interval,
-        limit=limit,
-    )
+    if exchange == Exchange.BINANCE:
+        endpoint = connector.open_interest_history_endpoint(
+            market_type=market_type,
+            symbol=symbol,
+            start_ts=start_ts,
+            end_ts=end_ts,
+            interval=interval,
+            limit=limit,
+        )
+    elif exchange == Exchange.BYBIT:
+        endpoint = connector.open_interest_history_endpoint(
+            market_type=market_type,
+            symbol=symbol,
+            start_ts=start_ts,
+            end_ts=end_ts,
+            interval="5min",
+            limit=min(limit, 200),
+        )
+    else:
+        raise NotImplementedError("open-interest collector 当前支持 Binance 和 Bybit")
     rows = download_json(endpoint)
     events = connector.parse_open_interest_history(
         market_type=market_type,
         symbol=symbol,
-        rows=rows,
         interval=interval,
+        rows=rows,
     )
     return DataLakeWriter(data_lake_root).write_events(events)
 
@@ -119,16 +147,14 @@ def ingest_funding(
     data_lake_root: Path,
     limit: int = 1000,
 ) -> list[Path]:
-    if exchange != Exchange.BINANCE:
-        raise NotImplementedError("funding collector 当前先支持 Binance")
-    connector = BinanceConnector()
+    connector = CONNECTORS[exchange]
     start_ts, end_ts = _day_window(day)
     endpoint = connector.funding_rate_history_endpoint(
         market_type=market_type,
         symbol=symbol,
         start_ts=start_ts,
         end_ts=end_ts,
-        limit=limit,
+        limit=limit if exchange == Exchange.BINANCE else min(limit, 200),
     )
     rows = download_json(endpoint)
     events = connector.parse_funding_rate_history(

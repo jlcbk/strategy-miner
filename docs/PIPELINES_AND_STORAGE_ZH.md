@@ -140,6 +140,9 @@ python3 -m apps.cli.main run-tool plan_data_collection_commands --payload-json '
 - Binance `funding` -> `funding`
 - Binance `open_interest` -> `open-interest`，但官方历史 REST 只支持最近约 1 个月
 - Bybit `trade` -> `historical-trades`
+- Bybit `mark` -> `historical-mark`
+- Bybit `funding` -> `funding`
+- Bybit `open_interest` -> `open-interest`
 - 其他交易所或事件类型会标记为 blocked，并返回尚未接入的原因
 
 命令规划会给每个 job 标注执行风险：
