@@ -17,6 +17,7 @@ ARTIFACT_ROOTS = {
 STRATEGY_QUEUE_PATH = Path("artifacts/strategies/strategy_queue.json")
 MANUAL_GATE_SCHEMA_PATH = Path("schemas/manual_gate_checklist.schema.json")
 DATA_COLLECTION_PLAN_SCHEMA_PATH = Path("schemas/data_collection_plan.schema.json")
+METADATA_RESOLUTION_SCHEMA_PATH = Path("schemas/metadata_resolution_plan.schema.json")
 
 
 def test_cross_exchange_funding_artifacts_are_machine_readable() -> None:
@@ -102,6 +103,10 @@ def test_funding_carry_artifacts_are_machine_readable() -> None:
     data_collection_plan = _read_json(
         ARTIFACT_ROOTS["funding_carry_vol_filter"] / "data_collection_plan.json"
     )
+    metadata_resolution = _read_json(
+        ARTIFACT_ROOTS["funding_carry_vol_filter"]
+        / "instrument_metadata_resolution.json"
+    )
 
     assert report["kind"] == "research_report"
     assert proposal["kind"] == "strategy_proposal"
@@ -125,6 +130,10 @@ def test_funding_carry_artifacts_are_machine_readable() -> None:
         in proposal["candidate_files"]
     )
     assert (
+        "artifacts/strategies/funding_carry_vol_filter/instrument_metadata_resolution.json"
+        in proposal["candidate_files"]
+    )
+    assert (
         "artifacts/strategies/funding_carry_vol_filter/opportunity_report.json"
         in proposal["candidate_files"]
     )
@@ -139,7 +148,14 @@ def test_funding_carry_artifacts_are_machine_readable() -> None:
     assert data_collection_plan["command_summary"]["blocked_by_event_type"] == {
         "instrument": 6
     }
+    assert (
+        data_collection_plan["blocked_commands"][0]["resolution_plan"]
+        == "artifacts/strategies/funding_carry_vol_filter/instrument_metadata_resolution.json"
+    )
     assert "place orders" in data_collection_plan["safety_boundary"]
+    assert metadata_resolution["kind"] == "metadata_resolution_plan"
+    assert metadata_resolution["blocked_requirement"] == "instrument_metadata"
+    assert len(metadata_resolution["blocked_partitions"]) == 6
 
 
 def test_funding_carry_data_collection_plan_matches_supported_fields() -> None:
@@ -183,6 +199,42 @@ def test_funding_carry_data_collection_plan_matches_supported_fields() -> None:
     assert data_collection_plan["blocked_commands"][0]["execution_group"] == (
         "metadata_snapshot"
     )
+
+
+def test_funding_carry_metadata_resolution_plan_matches_supported_fields() -> None:
+    metadata_resolution = _read_json(
+        ARTIFACT_ROOTS["funding_carry_vol_filter"]
+        / "instrument_metadata_resolution.json"
+    )
+    schema = _read_json(METADATA_RESOLUTION_SCHEMA_PATH)
+
+    assert set(metadata_resolution) == {
+        "kind",
+        "title",
+        "created_by",
+        "created_at",
+        "strategy_name",
+        "issue_number",
+        "blocked_requirement",
+        "blocked_partitions",
+        "blocker_reason",
+        "accepted_resolution_paths",
+        "manual_assumption_limits",
+        "reject_if",
+        "output_partition_contract",
+        "next_actions",
+        "safety_boundary",
+    }
+    assert schema["properties"]["kind"]["const"] == metadata_resolution["kind"]
+    assert {
+        path["id"] for path in metadata_resolution["accepted_resolution_paths"]
+    } == {
+        "official_dated_snapshot",
+        "manual_static_metadata_assumption",
+    }
+    assert metadata_resolution["manual_assumption_limits"]["max_days_between_snapshot_and_replay"] == 1
+    assert metadata_resolution["output_partition_contract"]["event_type"] == "instrument"
+    assert "production-ready" in metadata_resolution["safety_boundary"]
 
 
 def test_funding_carry_opportunity_report_matches_supported_schema_fields() -> None:
@@ -555,6 +607,7 @@ def test_strategy_queue_matches_artifact_inventory() -> None:
         if item["strategy_name"] == "funding_carry_vol_filter"
     ][0]
     assert funding["has_data_collection_plan"] is True
+    assert "instrument_metadata_resolution.json" in funding["next_action"]
     assert (
         ARTIFACT_ROOTS["funding_carry_vol_filter"] / "data_collection_plan.json"
     ).exists()

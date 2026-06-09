@@ -44,6 +44,7 @@ GitHub issue 或互联网策略灵感
 - `research_report`：来源、摘要、关键 claim、公式、成本项、失败模式和数据需求。
 - `strategy_proposal`：策略假设、evaluator 契约、数据需求、测试计划、风险控制和候选文件。
 - `data_collection_plan`：由 coverage 缺口生成的采集计划、命令模板、阻塞原因和安全边界。
+- `metadata_resolution_plan`：当验证缺少 instrument、合约规则或其它元数据分区时，记录可接受来源、人工假设边界和拒绝条件。
 - `backtest_request`：策略名、版本、数据窗口、symbols、exchanges 和参数。
 - `opportunity_report`：策略结果、机会数量、机会列表、数据窗口和结果哈希。
 - `manual_gate_checklist`：非行情数据或人工风控门禁，例如发行方状态、赎回状态、监管状态和人工确认要求；默认不产生 data lake 分区。

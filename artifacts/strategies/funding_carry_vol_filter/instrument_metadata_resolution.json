@@ -1,0 +1,84 @@
+{
+  "kind": "metadata_resolution_plan",
+  "title": "Funding carry instrument metadata blocker resolution plan",
+  "created_by": "codex",
+  "created_at": "2026-06-09T00:00:00+00:00",
+  "strategy_name": "funding_carry_vol_filter",
+  "issue_number": 1,
+  "blocked_requirement": "instrument_metadata",
+  "blocked_partitions": [
+    "binance spot BTCUSDT 2026-06-08",
+    "binance spot ETHUSDT 2026-06-08",
+    "binance spot SOLUSDT 2026-06-08",
+    "binance perp BTCUSDT 2026-06-08",
+    "binance perp ETHUSDT 2026-06-08",
+    "binance perp SOLUSDT 2026-06-08"
+  ],
+  "blocker_reason": "instrument-snapshot collector can capture current exchange rules, but it cannot reconstruct historical exchangeInfo partitions for 2026-06-08.",
+  "accepted_resolution_paths": [
+    {
+      "id": "official_dated_snapshot",
+      "status": "preferred",
+      "description": "Use an official exchange, archive, or internally stored dated exchangeInfo snapshot for 2026-06-08.",
+      "required_evidence": [
+        "source URL or archive path",
+        "snapshot timestamp",
+        "raw exchangeInfo payload hash"
+      ],
+      "allowed_downstream_state": "can satisfy instrument_metadata coverage after partition write"
+    },
+    {
+      "id": "manual_static_metadata_assumption",
+      "status": "fallback",
+      "description": "For highly liquid Binance BTC/ETH/SOL spot and USD-M perp markets only, use a reviewer-approved current exchangeInfo snapshot as a static metadata assumption when the review date is close to the replay window.",
+      "required_evidence": [
+        "current exchangeInfo snapshot hash",
+        "reviewer confirmation that symbol status, base/quote assets, contract size, precision and expiry fields are consistent with the replay window",
+        "explicit note that this is an assumption, not an official historical snapshot"
+      ],
+      "allowed_downstream_state": "can unlock fixture-like historical replay only after human review; cannot be described as official historical validation"
+    }
+  ],
+  "manual_assumption_limits": {
+    "max_days_between_snapshot_and_replay": 1,
+    "allowed_exchange": "binance",
+    "allowed_market_types": [
+      "spot",
+      "perp"
+    ],
+    "allowed_symbols": [
+      "BTCUSDT",
+      "ETHUSDT",
+      "SOLUSDT"
+    ],
+    "allowed_fields": [
+      "base_asset",
+      "quote_asset",
+      "price_precision",
+      "qty_precision",
+      "contract_size",
+      "expiry_ts",
+      "status"
+    ]
+  },
+  "reject_if": [
+    "symbol was listed, delisted, renamed, migrated or suspended near the replay window",
+    "precision, contract size, quote asset or margin rule changed between replay date and snapshot date",
+    "the replay window is more than one day away from the observed snapshot",
+    "the strategy needs liquidation, margin mode, leverage bracket, borrow or account-level constraints that are not present in exchangeInfo"
+  ],
+  "output_partition_contract": {
+    "event_type": "instrument",
+    "source_for_official_snapshot": "binance_exchange_info_archive",
+    "source_for_manual_assumption": "manual_instrument_metadata_assumption",
+    "exchange_ts": "replay partition date 00:00:00 UTC",
+    "required_payload": "Instrument payload with raw evidence hash and assumption notes when fallback path is used"
+  },
+  "next_actions": [
+    "Prefer an official dated exchangeInfo archive for 2026-06-08.",
+    "If no dated archive exists, capture current Binance exchangeInfo and apply the manual_static_metadata_assumption path only after human review.",
+    "Write instrument partitions only after recording the chosen resolution path and evidence hash.",
+    "Rerun check_data_coverage for #1 after instrument partitions and the other 20 supported partitions are written."
+  ],
+  "safety_boundary": "This plan resolves research metadata coverage only. It does not execute trades, approve live deployment, change production configuration or mark the strategy production-ready."
+}

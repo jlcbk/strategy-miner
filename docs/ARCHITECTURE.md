@@ -23,7 +23,7 @@
 ## Agent 协作边界
 
 - `packages/agent_interface` 定义 agent artifact、workflow、guardrail 和工具入口。
-- `schemas/` 定义研究报告、策略提案、数据采集计划、回测请求、机会报告和人工门禁 checklist 的 JSON schema。
+- `schemas/` 定义研究报告、策略提案、数据采集计划、元数据阻塞解决计划、回测请求、机会报告和人工门禁 checklist 的 JSON schema。
 - `apps/cli` 提供 JSON 输入输出，方便 agent 直接调用。
 - `packages/research_agent` 保留为兼容层，新能力应优先放到 `agent_interface`。
 

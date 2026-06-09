@@ -679,3 +679,26 @@
 ### 状态结论
 
 #1 继续保持 `strategy:blocked-data`。下一步可以在人工确认磁盘和网络预算后执行 20 个支持的 collector 命令，但必须先解决 6 个 instrument metadata snapshot 阻塞，才能考虑从 deterministic fixture 进入真实数据 replay。`fee-assumption` 仍只是回放假设，不代表官方或账户实际费率。
+
+## 2026-06-09：#1 Instrument metadata blocker resolution
+
+本轮继续推进 #1 `funding_carry_vol_filter` 的数据阻塞，聚焦上一轮剩余的 6 个 `instrument_metadata` 分区。由于当前 `instrument-snapshot` collector 只能采当前 Binance exchangeInfo，不能回补 2026-06-08 的历史 exchangeInfo，本轮没有把当前 snapshot 伪装成历史真值，而是新增元数据阻塞解决计划：
+
+- `artifacts/strategies/funding_carry_vol_filter/instrument_metadata_resolution.json`
+- `schemas/metadata_resolution_plan.schema.json`
+
+### 允许的解决路径
+
+- 首选：使用官方、归档或内部保存的 2026-06-08 dated exchangeInfo snapshot。
+- 备选：仅针对 Binance BTCUSDT / ETHUSDT / SOLUSDT spot 和 USD-M perp，在人工审核确认 replay 日期与当前 snapshot 相隔不超过 1 天，且 symbol 状态、base/quote、contract size、precision 和 expiry 没有变化时，使用 `manual_instrument_metadata_assumption`。
+
+### 拒绝条件
+
+- 标的在 replay 窗口附近发生上市、退市、改名、迁移或暂停。
+- precision、contract size、quote asset 或保证金规则发生变化。
+- replay 日期与 snapshot 日期相隔超过 1 天。
+- 策略需要 liquidation、margin mode、leverage bracket、borrow 或账户级约束，而 exchangeInfo 不包含这些信息。
+
+### 状态结论
+
+#1 继续保持 `strategy:blocked-data`。该计划只定义如何解除元数据分区阻塞，不执行数据采集，不生成实盘配置，不把人工静态假设描述为官方历史数据。下一步是选择官方 dated snapshot 或完成人工静态元数据审核，然后写入 instrument 分区并重新运行 `check_data_coverage`。

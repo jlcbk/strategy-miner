@@ -250,13 +250,14 @@
         "binance perp SOLUSDT"
       ],
       "reason": "instrument-snapshot collector 只能采当前交易规则，不能回补历史 instrument 分区",
-      "next_action": "Add dated instrument metadata snapshots or record a same-day manual instrument snapshot before using the 2026-06-08 replay window."
+      "resolution_plan": "artifacts/strategies/funding_carry_vol_filter/instrument_metadata_resolution.json",
+      "next_action": "Use instrument_metadata_resolution.json to choose an official dated snapshot or a reviewer-approved static metadata assumption before using the 2026-06-08 replay window."
     }
   ],
   "next_actions": [
     "Run only the supported collector commands in a separate data-ingestion step after human confirmation of disk/network budget.",
     "Do not treat fee-assumption as official fees; replace it with actual fee partitions before strategy validation.",
-    "Resolve the instrument_metadata blocker before moving #1 from strategy:blocked-data to strategy:validation-ready.",
+    "Resolve the instrument_metadata blocker through instrument_metadata_resolution.json before moving #1 from strategy:blocked-data to strategy:validation-ready.",
     "After data ingestion, rerun check_data_coverage for the same scope and only then consider replay beyond deterministic fixtures."
   ],
   "safety_boundary": "This plan collects research data only. It does not place orders, modify production configuration, enable live trading or mark the strategy production-ready."

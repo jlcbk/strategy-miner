@@ -27,7 +27,7 @@
         "scope": "Binance BTC/ETH/SOL spot+perp, 2026-06-08"
       },
       "operator_fit": "High priority: single-exchange spot/perp carry, minute-to-day workflow, suitable for offline scan and manual confirmation.",
-      "next_action": "Use data_collection_plan.json to backfill 20 supported Binance partitions, then resolve 6 instrument_metadata snapshot blockers before validation-ready."
+      "next_action": "Use data_collection_plan.json to backfill 20 supported Binance partitions, then apply instrument_metadata_resolution.json to resolve 6 metadata blockers before validation-ready."
     },
     {
       "issue_number": 2,
