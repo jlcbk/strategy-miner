@@ -1,0 +1,68 @@
+{
+  "kind": "strategy_proposal",
+  "title": "Stablecoin depeg mean-reversion filter",
+  "created_by": "codex",
+  "created_at": "2026-06-09T00:00:00+00:00",
+  "strategy_name": "stablecoin_depeg_mean_reversion",
+  "hypothesis": "当主流法币抵押稳定币在 CEX spot 市场短暂低于锚定价格，且多交易所流动性恢复、交易所充提状态正常、发行方/赎回状态经人工确认没有结构性风险时，折价可能存在均值回归机会；该策略只作为告警和人工确认过滤器，不自动买入脱锚资产。",
+  "evaluator_contract": {
+    "inputs": [
+      "stablecoin spot candles against USDT, USDC or USD proxy",
+      "top orderbook depth around the peg",
+      "trade stream or volume bars for liquidity recovery",
+      "fee and slippage assumptions",
+      "manual issuer and redemption status checklist"
+    ],
+    "outputs": [
+      "stablecoin symbol",
+      "discount_bps",
+      "reference price source",
+      "depth capacity near peg",
+      "liquidity recovery flag",
+      "manual issuer status flag",
+      "estimated net recovery after fees and slippage"
+    ],
+    "entry_rules": [
+      "discount_bps exceeds configured threshold against a conservative reference price",
+      "discount is visible across more than one venue or confirmed not to be a single bad print",
+      "orderbook depth and trade volume recover enough for target notional",
+      "manual review confirms issuer status, redemption channel and exchange deposit/withdrawal status are acceptable",
+      "position is spot only and within predefined small notional limit"
+    ],
+    "exit_rules": [
+      "price returns near peg or reaches target recovery threshold",
+      "maximum holding time expires",
+      "issuer/redemption risk worsens",
+      "exchange disables trading, deposit or withdrawal for the asset",
+      "liquidity depth falls below exit threshold"
+    ]
+  },
+  "data_requirements": [
+    "spot_candles",
+    "orderbook",
+    "trades",
+    "fees",
+    "stablecoin_issuer_status"
+  ],
+  "test_plan": [
+    "先用 USDCUSDT、FDUSDUSDT、TUSDUSDT 等高流动性 spot pair 构造确定性 depeg fixture。",
+    "比较单交易所坏价、多交易所同步折价和全市场脱锚三类场景。",
+    "加入 orderbook depth 和 trade volume 过滤，测试折价是否有真实可成交容量。",
+    "显式扣除 spot taker fee、滑点、冲击成本和退出折价损失。",
+    "引入 manual issuer status checklist，在未通过人工确认时只生成 blocked alert。",
+    "在 stablecoin_issuer_status 数据模型建立前，不进入 validation-ready。"
+  ],
+  "risk_controls": [
+    "只允许 spot，不使用杠杆、借贷或链上复杂路径。",
+    "不自动执行买入脱锚资产；必须人工确认发行方、赎回和交易所充提状态。",
+    "限制单稳定币和单交易所名义敞口，避免把发行方信用风险集中化。",
+    "过滤算法稳定币、低流动性稳定币和交易所局部坏价。",
+    "设置最大持仓时间和最大折价损失阈值。",
+    "不标记为 production-ready，不触发真实交易或 live trading。"
+  ],
+  "candidate_files": [
+    "artifacts/strategies/stablecoin_depeg_mean_reversion/research_report.json",
+    "artifacts/strategies/stablecoin_depeg_mean_reversion/strategy_proposal.json",
+    "artifacts/strategies/stablecoin_depeg_mean_reversion/opportunity_report.json"
+  ]
+}

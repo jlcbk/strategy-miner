@@ -606,3 +606,32 @@
 - #5 `orderbook_imbalance_filter`：`45.00`，只能作为过滤器研究，不能变成独立高频策略。
 
 所有条目继续保持 `strategy:blocked-data`。该队列 artifact 用于恢复长期研究上下文，不代表任何策略通过真实历史验证。
+
+## 2026-06-09：#6 Stablecoin depeg mean-reversion filter
+
+本轮新增 [#6](https://github.com/jlcbk/strategy-miner/issues/6)，作为新的稳定币脱锚均值回归研究候选，并整理为机器可读 artifact：
+
+- `artifacts/strategies/stablecoin_depeg_mean_reversion/research_report.json`
+- `artifacts/strategies/stablecoin_depeg_mean_reversion/strategy_proposal.json`
+- `artifacts/strategies/stablecoin_depeg_mean_reversion/opportunity_report.json`
+
+### 操作适配判断
+
+- 资金规模：只适合小资金到中等资金的告警和人工确认，不适合作为自动抄底策略。
+- 持仓周期：分钟级到小时级，日内优先。
+- 产品范围：spot only，不使用杠杆、借贷或链上复杂路径。
+- 自动化要求：允许离线扫描和告警；真实入场必须人工确认发行方、赎回通道和交易所充提状态。
+- 主要风险：折价可能来自真实储备损失、赎回暂停、监管冻结或发行方信用风险。
+
+### 工具验证结果
+
+- `plan_strategy_validation` readiness：`blocked_missing_data_model`。
+- `rank_strategy_candidates` total_score：`55.50`。
+- 推荐状态：`proposed`。
+- `check_data_coverage` 范围：Binance / OKX / Bybit / Bitget，USDCUSDT / FDUSDUSDT / TUSDUSDT，spot，2026-06-08。
+- 覆盖率：`0.00`，`covered_count=0`，`required_count=48`。
+- unsupported requirement：`stablecoin_issuer_status`。
+
+### 状态结论
+
+#6 继续保持 `strategy:blocked-data`。行情侧可以映射到 spot candles、orderbook、trades 和 fees，但进入验证前必须先定义 `stablecoin_issuer_status` 或等价的人工赎回状态 checklist。该策略不提供投资建议，不自动执行，不标记为 production-ready。

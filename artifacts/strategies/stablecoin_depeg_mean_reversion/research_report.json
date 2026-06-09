@@ -1,0 +1,55 @@
+{
+  "kind": "research_report",
+  "title": "Stablecoin depeg mean-reversion filter research report",
+  "created_by": "codex",
+  "created_at": "2026-06-09T00:00:00+00:00",
+  "summary": "主流法币抵押稳定币在 CEX spot 市场可能因为临时流动性压力、市场恐慌、交易所局部供需或赎回通道摩擦而短暂低于锚定价格。如果折价不是储备损失、赎回暂停或监管冻结等结构性风险，价格可能在流动性恢复后回归。按当前 operator profile，该方向只适合作为离线扫描、告警和人工确认候选，不适合无人值守自动抄底脱锚资产。",
+  "source_urls": [
+    "https://coinmarketcap.com/academy/article/why-do-stablecoins-depeg",
+    "https://www.kraken.com/learn/stablecoin-depegging",
+    "https://www.spglobal.com/en/research-insights/special-reports/stablecoins-a-deep-dive-into-valuation-and-depegging",
+    "https://arxiv.org/abs/2606.07442"
+  ],
+  "claims": [
+    "稳定币脱锚可能来自临时市场流动性，也可能来自储备、赎回、监管或发行方信用风险，二者必须分开处理。",
+    "当折价来自局部流动性冲击且赎回机制仍可用时，价格存在均值回归可能。",
+    "跨交易所、跨稳定币报价和 orderbook depth 可以帮助区分单一市场坏价与更广泛的脱锚风险。",
+    "该策略的核心风险不是入场公式，而是人工确认发行方状态、赎回通道和交易所充提限制。",
+    "该方向应作为风控型告警和人工确认候选，不应自动执行。"
+  ],
+  "formulas": [
+    "discount_bps = (reference_price - stablecoin_price) / reference_price * 10000",
+    "peg_recovery_bps = (exit_price - entry_price) / entry_price * 10000",
+    "depth_capacity_usd = min(bid_ask_depth_near_peg, target_notional)",
+    "net_edge = expected_peg_recovery - taker_fee - slippage - exit_cost - risk_buffer",
+    "entry_allowed = discount_bps >= threshold and liquidity_recovery and issuer_status_ok"
+  ],
+  "cost_items": [
+    "spot maker/taker 手续费",
+    "脱锚期间盘口变薄造成的滑点和冲击成本",
+    "退出时 peg 未完全恢复的折价损失",
+    "交易所充提限制、暂停交易或局部坏价导致的流动性成本",
+    "误判发行方风险导致的尾部亏损"
+  ],
+  "failure_modes": [
+    "折价反映真实储备损失、赎回暂停、监管冻结或发行方信用风险，价格不再均值回归。",
+    "稳定币之间的报价同时失真，reference price 定义错误导致折价被高估。",
+    "CEX 盘口在危机中突然消失，实际可成交容量远低于 snapshot 显示。",
+    "交易所暂停充值、提现或交易，导致无法退出或只能在局部市场承担更大折价。",
+    "如果无人值守自动买入脱锚资产，会违背当前 operator profile 和风险边界。"
+  ],
+  "required_data": [
+    "spot_candles",
+    "orderbook",
+    "trades",
+    "fees",
+    "stablecoin_issuer_status"
+  ],
+  "evidence_notes": [
+    "Operator fit: 只适合离线扫描、告警和人工确认；不需要高杠杆或极低延迟，但需要明确人工审核流程。",
+    "Market scope: 早期只看 USDC、USDT、FDUSD、TUSD 等高流动性法币抵押稳定币的 CEX spot 市场，不纳入算法稳定币。",
+    "Execution assumption: spot only，不使用杠杆、不使用借贷、不依赖链上复杂路径。",
+    "Risk boundary: 发行方状态、赎回通道、监管和交易所充提限制必须由人工确认；当前项目尚未建模 stablecoin_issuer_status。",
+    "Current status: 行情数据可映射到 spot_candles/orderbook/trades/fees，但 issuer/redemption 状态缺模型，因此保持 strategy:blocked-data。"
+  ]
+}

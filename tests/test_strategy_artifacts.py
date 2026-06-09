@@ -10,6 +10,9 @@ ARTIFACT_ROOTS = {
     "oi_confirmed_momentum": Path("artifacts/strategies/oi_confirmed_momentum"),
     "orderbook_imbalance_filter": Path("artifacts/strategies/orderbook_imbalance_filter"),
     "quarterly_basis_convergence": Path("artifacts/strategies/quarterly_basis_convergence"),
+    "stablecoin_depeg_mean_reversion": Path(
+        "artifacts/strategies/stablecoin_depeg_mean_reversion"
+    ),
 }
 STRATEGY_QUEUE_PATH = Path("artifacts/strategies/strategy_queue.json")
 
@@ -333,6 +336,75 @@ def test_orderbook_imbalance_filter_opportunity_report_matches_supported_schema_
         ARTIFACT_ROOTS["orderbook_imbalance_filter"] / "opportunity_report.json"
     )
 
+    assert set(opportunity_report) == {
+        "kind",
+        "title",
+        "created_by",
+        "created_at",
+        "strategy_name",
+        "strategy_version",
+        "data_window",
+        "opportunity_count",
+        "opportunities",
+        "result_hash",
+    }
+
+
+def test_stablecoin_depeg_artifacts_are_machine_readable() -> None:
+    report, proposal = _read_artifacts("stablecoin_depeg_mean_reversion")
+    opportunity_report = _read_json(
+        ARTIFACT_ROOTS["stablecoin_depeg_mean_reversion"] / "opportunity_report.json"
+    )
+
+    assert report["kind"] == "research_report"
+    assert proposal["kind"] == "strategy_proposal"
+    assert opportunity_report["kind"] == "opportunity_report"
+    assert proposal["strategy_name"] == "stablecoin_depeg_mean_reversion"
+    assert opportunity_report["strategy_name"] == "stablecoin_depeg_mean_reversion"
+    assert proposal["data_requirements"] == report["required_data"]
+    assert "spot_candles" in proposal["data_requirements"]
+    assert "orderbook" in proposal["data_requirements"]
+    assert "stablecoin_issuer_status" in proposal["data_requirements"]
+    assert any("Operator fit" in note for note in report["evidence_notes"])
+    assert any("Risk boundary" in note for note in report["evidence_notes"])
+    assert "blocked-data fixture" in opportunity_report["title"]
+    assert opportunity_report["opportunity_count"] == 0
+    assert opportunity_report["opportunities"] == []
+
+
+def test_stablecoin_depeg_artifacts_match_supported_schema_fields() -> None:
+    report, proposal = _read_artifacts("stablecoin_depeg_mean_reversion")
+    opportunity_report = _read_json(
+        ARTIFACT_ROOTS["stablecoin_depeg_mean_reversion"] / "opportunity_report.json"
+    )
+
+    assert set(report) == {
+        "kind",
+        "title",
+        "created_by",
+        "created_at",
+        "summary",
+        "source_urls",
+        "claims",
+        "formulas",
+        "cost_items",
+        "failure_modes",
+        "required_data",
+        "evidence_notes",
+    }
+    assert set(proposal) == {
+        "kind",
+        "title",
+        "created_by",
+        "created_at",
+        "strategy_name",
+        "hypothesis",
+        "evaluator_contract",
+        "data_requirements",
+        "test_plan",
+        "risk_controls",
+        "candidate_files",
+    }
     assert set(opportunity_report) == {
         "kind",
         "title",

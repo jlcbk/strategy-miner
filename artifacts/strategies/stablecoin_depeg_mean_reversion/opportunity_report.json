@@ -1,0 +1,15 @@
+{
+  "kind": "opportunity_report",
+  "title": "Stablecoin depeg mean-reversion blocked-data fixture opportunity report",
+  "created_by": "codex",
+  "created_at": "2026-06-09T00:00:00+00:00",
+  "strategy_name": "stablecoin_depeg_mean_reversion",
+  "strategy_version": "0.1.0",
+  "data_window": {
+    "start_ts": "2026-06-08T00:00:00+00:00",
+    "end_ts": "2026-06-09T00:00:00+00:00"
+  },
+  "opportunity_count": 0,
+  "opportunities": [],
+  "result_hash": "20e17d10167840ee29a78bbe22e132f34a8f0709ce7aece00df80e7b88359a7d"
+}
