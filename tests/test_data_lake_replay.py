@@ -1,7 +1,12 @@
 from datetime import datetime, timezone
 from decimal import Decimal
 
-from packages.data_lake import DataLakeReader, DataLakeWriter, check_data_coverage
+from packages.data_lake import (
+    DataLakeReader,
+    DataLakeWriter,
+    check_data_coverage,
+    generate_data_collection_jobs,
+)
 from packages.normalization import (
     FundingPayload,
     MarketEvent,
@@ -146,3 +151,36 @@ def test_data_coverage_scopes_spot_candles_to_spot_market(tmp_path) -> None:
     assert ("spot_candles", "perp", "trade") not in requirements
     assert ("funding", "perp", "funding") in requirements
     assert ("funding", "spot", "funding") not in requirements
+
+
+def test_generate_data_collection_jobs_from_missing_partitions(tmp_path) -> None:
+    proposal = {
+        "strategy_name": "oi_confirmed_momentum",
+        "data_requirements": ["open_interest", "funding"],
+    }
+
+    plan = generate_data_collection_jobs(
+        root=tmp_path,
+        proposal=proposal,
+        exchanges=["binance"],
+        market_types=["perp"],
+        symbols=["BTCUSDT"],
+        start_date=datetime(2024, 1, 1, tzinfo=timezone.utc).date(),
+        end_date=datetime(2024, 1, 1, tzinfo=timezone.utc).date(),
+    )
+    repeated = generate_data_collection_jobs(
+        root=tmp_path,
+        proposal=proposal,
+        exchanges=["binance"],
+        market_types=["perp"],
+        symbols=["BTCUSDT"],
+        start_date=datetime(2024, 1, 1, tzinfo=timezone.utc).date(),
+        end_date=datetime(2024, 1, 1, tzinfo=timezone.utc).date(),
+    )
+
+    assert len(plan.jobs) == 2
+    assert [job.id for job in plan.jobs] == [job.id for job in repeated.jobs]
+    assert {job.event_type for job in plan.jobs} == {"funding", "open_interest"}
+    assert plan.jobs[0].start_ts == "2024-01-01T00:00:00+00:00"
+    assert plan.jobs[0].end_ts == "2024-01-02T00:00:00+00:00"
+    assert plan.jobs[0].status == "queued"

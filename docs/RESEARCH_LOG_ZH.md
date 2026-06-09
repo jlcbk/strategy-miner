@@ -82,3 +82,20 @@
 - #1、#2、#3 都保留为高优先级候选，但因为本地 data lake 覆盖率为 0%，先改为 `strategy:blocked-data`。
 - 解除阻塞的条件不是重新研究策略，而是补齐目标窗口的 funding、mark、trade、fee、instrument 或 open interest 分区。
 - 数据分区补齐后，应重新运行 `check_data_coverage`，覆盖率为 100% 时再恢复 `strategy:validation-ready`。
+
+## 2026-06-09：Data collection job 生成工具
+
+本轮新增 `generate_data_collection_jobs` agent 工具，用于把 `check_data_coverage` 的缺失分区转换成 ingestion job JSON。
+
+### 工具行为
+
+- 每个缺失分区生成一个 `queued` job。
+- Job id 使用缺失分区字段确定性生成，重复运行不会改变 id。
+- 时间窗口按缺失日期展开为 UTC 当日 00:00 到次日 00:00。
+- 工具只生成 JSON，不写数据库，不联网抓数据，不触发交易。
+
+### 首次 job 计划
+
+- #1 Funding carry：Binance，BTC/ETH/SOL，spot + perp，2024-01-01，生成 21 个缺失分区 job。
+- #2 Quarterly basis：Binance，BTC/ETH，spot + perp + future，2024-01-01，生成 22 个缺失分区 job。
+- #3 OI momentum：Binance，BTC/ETH/SOL perp，2024-01-01，生成 18 个缺失分区 job。

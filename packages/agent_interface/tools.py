@@ -14,7 +14,7 @@ from packages.agent_interface.validation_plan import (
     plan_strategy_validation,
     validation_planning_contract,
 )
-from packages.data_lake.coverage import check_data_coverage
+from packages.data_lake.coverage import check_data_coverage, generate_data_collection_jobs
 from packages.strategies import (
     CrossExchangeSpreadStrategy,
     FundingCarryStrategy,
@@ -72,6 +72,23 @@ def available_tools() -> list[dict[str, Any]]:
                     "start_date",
                     "end_date",
                 ],
+            },
+        },
+        {
+            "name": "generate_data_collection_jobs",
+            "description": "把 data coverage 缺口转换成 ingestion job JSON。",
+            "allowed_action": AgentAction.CREATE_STRATEGY_PROPOSAL.value,
+            "input_contract": {
+                "required": [
+                    "root",
+                    "proposal",
+                    "exchanges",
+                    "market_types",
+                    "symbols",
+                    "start_date",
+                    "end_date",
+                ],
+                "optional": ["limit"],
             },
         },
     ]
@@ -159,6 +176,22 @@ def run_tool(name: str, payload: dict[str, Any] | None = None) -> ToolResult:
         except (KeyError, TypeError, ValueError) as exc:
             return ToolResult(ok=False, payload={}, message=str(exc))
         return ToolResult(ok=True, payload={"coverage": report.to_dict()})
+    if name == "generate_data_collection_jobs":
+        try:
+            limit = payload.get("limit")
+            job_plan = generate_data_collection_jobs(
+                root=payload["root"],
+                proposal=payload["proposal"],
+                exchanges=_required_list(payload, "exchanges"),
+                market_types=_required_list(payload, "market_types"),
+                symbols=_required_list(payload, "symbols"),
+                start_date=date.fromisoformat(str(payload["start_date"])),
+                end_date=date.fromisoformat(str(payload["end_date"])),
+                limit=None if limit is None else int(limit),
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            return ToolResult(ok=False, payload={}, message=str(exc))
+        return ToolResult(ok=True, payload={"job_plan": job_plan.to_dict()})
     return ToolResult(ok=False, payload={}, message=f"未知工具：{name}")
 
 
