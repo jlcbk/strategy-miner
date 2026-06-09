@@ -1,0 +1,56 @@
+{
+  "kind": "research_report",
+  "title": "Cross-exchange funding dispersion hedge research report",
+  "created_by": "codex",
+  "created_at": "2026-06-09T00:00:00+00:00",
+  "summary": "同一标的在不同交易所的 perpetual funding 差异可能形成市场中性 carry 候选。该方向不依赖预测单边价格，但依赖跨交易所资金预分配、保证金隔离、费用和滑点建模，以及 funding spread 的持续性验证。按当前 operator profile，它适合作为离线扫描和人工确认候选，不适合直接进入无人值守执行。",
+  "source_urls": [
+    "https://www.bybit.com/en/help-center/article/What-is-funding-rate-and-predicted-rate/",
+    "https://bybit-exchange.github.io/docs/api-explorer/v5/market/history-fund-rate",
+    "https://www.okx.com/en-gb/historical-data",
+    "https://www.bitget.com/api-doc/uta/public/Get-History-Funding-Rate",
+    "https://www.binance.com/en/futures/funding-history/perpetual/arbitrage-data"
+  ],
+  "claims": [
+    "Perpetual funding 是多空之间周期性支付的机制，交易所之间的用户结构、杠杆需求和风险偏好差异可能导致同一标的 funding rate 出现分散。",
+    "当高 funding 交易所做空 perp、低 funding 交易所做多 perp 时，组合目标是收集 funding spread，而不是承担方向性 beta。",
+    "Bybit、OKX、Bitget 均提供或展示历史 funding rate 数据入口，说明该策略的核心信号具备公开数据复验基础。",
+    "跨所 funding dispersion 的主要限制不是信号定义，而是执行复杂度：保证金分散、两腿不同步、交易所 API 或账户限制、以及 funding spread 反转。"
+  ],
+  "formulas": [
+    "funding_spread = funding_rate_high_exchange - funding_rate_low_exchange",
+    "expected_edge = expected_funding_spread * notional - taker_or_maker_fees - slippage - rebalance_cost - margin_buffer_cost",
+    "mark_divergence = abs(mark_price_a / index_price_a - mark_price_b / index_price_b)",
+    "capacity_notional = min(depth_capacity_high_exchange, depth_capacity_low_exchange, preallocated_margin_capacity)"
+  ],
+  "cost_items": [
+    "双边 maker/taker 手续费",
+    "两腿成交滑点和盘口冲击",
+    "保证金预分配带来的资金占用",
+    "再平衡和换仓成本",
+    "极端行情下被动减仓或强平缓冲成本"
+  ],
+  "failure_modes": [
+    "Funding spread 在入场后快速收敛或反转，导致预期 carry 消失。",
+    "两家交易所 mark/index price 脱锚，组合出现方向性或 basis 暴露。",
+    "一侧 API、账户、风控或撮合异常导致无法同步开平仓。",
+    "保证金分散且无法及时补充，导致单边强平风险。",
+    "低流动性 alt 的表面 funding spread 被滑点和冲击成本吞噬。",
+    "策略如果依赖临时跨所转账或持续人工盯盘，会违背当前 operator profile。"
+  ],
+  "required_data": [
+    "funding",
+    "mark_index_price",
+    "perp_candles",
+    "fees",
+    "instrument_metadata",
+    "depth_volume"
+  ],
+  "evidence_notes": [
+    "Operator fit: 资金规模适合小到中等资金先做模拟；持仓周期为小时级到日级；允许半自动告警和人工确认；不应要求持续人工盯盘。",
+    "Execution assumption: 初期版本必须假设交易所账户中已经预分配库存和保证金，不把跨所转账作为入场条件。",
+    "Sampling policy: funding 以每个交易所原生 funding interval 为主；mark/index 用 1m 或 5m 对齐；depth/volume 只用于容量和滑点过滤，不作为高频入场信号。",
+    "Risk priority: 降低高杠杆、低流动性 alt、需要多账户快速再平衡、或需要无人值守执行的版本优先级。",
+    "Current status: 核心 funding 数据可公开复验，但 depth_volume 与跨所执行成本仍需固定采样和容量估计政策。"
+  ]
+}

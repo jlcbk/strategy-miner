@@ -1,0 +1,64 @@
+{
+  "kind": "strategy_proposal",
+  "title": "Cross-exchange funding dispersion hedge",
+  "created_by": "codex",
+  "created_at": "2026-06-09T00:00:00+00:00",
+  "strategy_name": "cross_exchange_funding_dispersion",
+  "hypothesis": "当同一高流动性标的在不同交易所的 perpetual funding 差异持续超过费用、滑点和再平衡缓冲时，做高 funding 交易所空 perp、低 funding 交易所多 perp 的市场中性组合，可能获得可复验的 funding spread carry。",
+  "evaluator_contract": {
+    "inputs": [
+      "funding rates by exchange, symbol and funding interval",
+      "mark and index prices aligned to 1m or 5m bars",
+      "perp candles or trades for volatility and spread sanity checks",
+      "fee schedule and instrument metadata",
+      "depth or traded volume capacity proxy"
+    ],
+    "outputs": [
+      "candidate exchange pair",
+      "symbol",
+      "expected funding spread",
+      "estimated net edge after fees and slippage",
+      "capacity bucket",
+      "risk flags"
+    ],
+    "entry_rules": [
+      "funding_spread exceeds min_net_spread_threshold for at least two consecutive funding observations or configured confirmation windows",
+      "both exchanges have aligned mark/index prices without abnormal divergence",
+      "depth or volume capacity is sufficient for target notional",
+      "preallocated margin is available on both exchanges"
+    ],
+    "exit_rules": [
+      "funding_spread falls below exit_spread_threshold",
+      "mark/index divergence breaches risk limit",
+      "one side reports stale market data or account/API restriction",
+      "margin buffer falls below configured threshold"
+    ]
+  },
+  "data_requirements": [
+    "funding",
+    "mark_index_price",
+    "perp_candles",
+    "fees",
+    "instrument_metadata",
+    "depth_volume"
+  ],
+  "test_plan": [
+    "先用 BTCUSDT、ETHUSDT、SOLUSDT 在 Binance、OKX、Bybit、Bitget 间做离线 funding spread 面板扫描。",
+    "按原生 funding interval 对齐各交易所 funding，并用 1m 或 5m mark/index 数据过滤脱锚窗口。",
+    "比较只看 funding spread 与扣除手续费、滑点、容量约束后的 net edge 差异。",
+    "用不同阈值、不同确认窗口、不同交易所组合做稳定性检查，避免只拟合单一交易所或单一日期。",
+    "在数据采集政策确定前，只产出候选和告警，不生成自动执行配置。"
+  ],
+  "risk_controls": [
+    "不使用跨所临时转账作为入场前提，只允许预分配库存和保证金版本。",
+    "限制单交易所、单标的和单 exchange-pair 的最大名义敞口。",
+    "过滤低流动性 alt、异常 funding cap/floor 调整窗口和 mark/index 脱锚窗口。",
+    "要求两腿都能在人工确认后执行；任一交易所 API 或账户状态异常时跳过。",
+    "不标记为 production-ready，直到人工复核保证金、费用、滑点、风控和回放结果。"
+  ],
+  "candidate_files": [
+    "artifacts/strategies/cross_exchange_funding_dispersion/research_report.json",
+    "artifacts/strategies/cross_exchange_funding_dispersion/strategy_proposal.json",
+    "packages/strategies/cross_exchange.py"
+  ]
+}

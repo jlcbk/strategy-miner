@@ -99,3 +99,31 @@
 - #1 Funding carry：Binance，BTC/ETH/SOL，spot + perp，2024-01-01，生成 21 个缺失分区 job。
 - #2 Quarterly basis：Binance，BTC/ETH，spot + perp + future，2024-01-01，生成 22 个缺失分区 job。
 - #3 OI momentum：Binance，BTC/ETH/SOL perp，2024-01-01，生成 18 个缺失分区 job。
+
+## 2026-06-09：#4 Cross-exchange funding dispersion artifact 化
+
+本轮将 [#4](https://github.com/jlcbk/strategy-miner/issues/4) 从 GitHub Issue 文本整理为机器可读 artifact：
+
+- `artifacts/strategies/cross_exchange_funding_dispersion/research_report.json`
+- `artifacts/strategies/cross_exchange_funding_dispersion/strategy_proposal.json`
+
+### 操作适配判断
+
+- 资金规模：适合小到中等资金先做模拟和告警。
+- 持仓周期：小时级到日级，跨 funding interval。
+- 自动化要求：允许离线扫描和人工确认，不进入无人值守执行。
+- 执行假设：必须预分配交易所库存和保证金，不依赖临时跨所转账。
+- 主要风险：funding spread 反转、mark/index 脱锚、API 或账户限制、保证金分散导致单边风险。
+
+### 工具验证结果
+
+- `plan_strategy_validation` readiness：`needs_data_collection_plan`。
+- 关键阻塞：`depth_volume` 需要固定 orderbook depth、trade volume、采样窗口和 staleness 策略。
+- `rank_strategy_candidates` total_score：`71.00`。
+- 推荐状态：`needs_human_review`。
+- `check_data_coverage` 范围：Binance / OKX / Bybit / Bitget，BTCUSDT / ETHUSDT / SOLUSDT，perp，2026-06-08。
+- 覆盖率：`0.00`，`covered_count=0`，`required_count=84`，且 `depth_volume` 仍是 unsupported requirement。
+
+### 状态结论
+
+#4 仍是有研究价值的候选，但当前不能进入 `strategy:validation-ready`。下一步应先确定 `depth_volume` 采集政策，并补齐 funding、mark/index、trade/mark、fee、instrument 分区后再重新检查 data coverage。
