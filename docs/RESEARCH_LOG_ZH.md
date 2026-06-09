@@ -299,3 +299,26 @@
 ### 状态结论
 
 #1 已从纯文本研究产物推进到最小可测 evaluator。它仍不是验证通过策略，也不能进入实盘；下一步需要用真实或 fixture candle/trade 数据替换当前的最小波动代理，并补齐 data lake 分区后跑 replay/backtest。
+
+## 2026-06-09：#1 Funding carry trade-derived 波动过滤
+
+本轮将 #1 的最小波动过滤从 mark price 代理推进为 trade-derived 口径。
+
+### 行为变化
+
+- `MarketState` 新增 `trades()`，用于策略 evaluator 读取原始 trade 序列。
+- `funding_carry_vol_filter` 的 `required_data` 更新为 `funding`、`mark`、`index`、`trade`。
+- 波动过滤优先使用 spot trade 序列计算相邻成交价格最大变动 bps。
+- 如果 spot trade 样本不足，则回退到 spot mark 序列；缺 spot 时使用 perp trade / mark。
+- opportunity metadata 记录 `recent_price_move_bps` 和 `recent_price_move_source`，用于区分 `trade` 或 `mark` 来源。
+
+### 测试覆盖
+
+- `MarketState.trades()` 返回原始 trade 序列。
+- 正常 trade move 会进入候选 metadata。
+- trade move 超过阈值时过滤候选。
+- 缺 trade 时回退到 mark move。
+
+### 状态结论
+
+#1 的 evaluator 现在更贴近 proposal 中的 `spot_candles`、`perp_candles` 和 `trades` 数据需求。它仍保持 `strategy:blocked-data`，因为本地真实 data lake 还缺目标窗口 trade、funding、mark/index、fee 和 instrument 分区。

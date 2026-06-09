@@ -6,6 +6,7 @@ from packages.normalization import (
     MarketEvent,
     MarkPricePayload,
     OpenInterestPayload,
+    TradePayload,
 )
 from packages.strategies import (
     failure_message_zh,
@@ -105,6 +106,47 @@ def test_funding_carry_outputs_spot_perp_hedged_candidate() -> None:
     assert opportunity.failure_modes == []
 
 
+def test_market_state_returns_trade_sequence() -> None:
+    state = MarketState(
+        [
+            _timed_event("trade", "spot", TradePayload("1", "100", "0.1"), TS),
+            _timed_event(
+                "trade",
+                "spot",
+                TradePayload("2", "101", "0.2"),
+                datetime(2024, 1, 1, 0, 1, tzinfo=timezone.utc),
+            ),
+        ]
+    )
+
+    trades = state.trades(symbol="BTC-USDT")
+
+    assert [trade.payload["trade_id"] for trade in trades] == ["1", "2"]
+
+
+def test_funding_carry_uses_trade_move_for_volatility_filter() -> None:
+    later = datetime(2024, 1, 1, 0, 1, tzinfo=timezone.utc)
+    state = MarketState(
+        [
+            _event("funding", "perp", FundingPayload(rate="0.003")),
+            _event("mark", "spot", MarkPricePayload(mark_price="100")),
+            _event("mark", "perp", MarkPricePayload(mark_price="100")),
+            _event("index", "perp", {"index_price": "100"}),
+            _timed_event("trade", "spot", TradePayload("1", "100", "0.1"), TS),
+            _timed_event("trade", "spot", TradePayload("2", "101", "0.1"), later),
+        ]
+    )
+
+    opportunities = FundingCarryStrategy(
+        notional_usd=Decimal("1000"),
+        hedge_fee_bps=Decimal("0"),
+    ).evaluate(state)
+
+    assert len(opportunities) == 1
+    assert opportunities[0].metadata["recent_price_move_bps"] == "100.00"
+    assert opportunities[0].metadata["recent_price_move_source"] == "trade"
+
+
 def test_funding_carry_filters_extreme_spot_perp_basis() -> None:
     state = MarketState(
         [
@@ -139,15 +181,16 @@ def test_funding_carry_filters_mark_index_depeg() -> None:
     assert opportunities == []
 
 
-def test_funding_carry_filters_recent_price_move_proxy() -> None:
+def test_funding_carry_filters_recent_trade_move() -> None:
     later = datetime(2024, 1, 1, 1, tzinfo=timezone.utc)
     state = MarketState(
         [
             _event("funding", "perp", FundingPayload(rate="0.003")),
-            _timed_event("mark", "spot", MarkPricePayload(mark_price="100"), TS),
-            _timed_event("mark", "spot", MarkPricePayload(mark_price="107"), later),
-            _event("mark", "perp", MarkPricePayload(mark_price="107")),
-            _event("index", "perp", {"index_price": "107"}),
+            _event("mark", "spot", MarkPricePayload(mark_price="100")),
+            _event("mark", "perp", MarkPricePayload(mark_price="100")),
+            _event("index", "perp", {"index_price": "100"}),
+            _timed_event("trade", "spot", TradePayload("1", "100", "0.1"), TS),
+            _timed_event("trade", "spot", TradePayload("2", "107", "0.1"), later),
         ]
     )
 
@@ -156,6 +199,28 @@ def test_funding_carry_filters_recent_price_move_proxy() -> None:
     ).evaluate(state)
 
     assert opportunities == []
+
+
+def test_funding_carry_falls_back_to_mark_move_when_trades_missing() -> None:
+    later = datetime(2024, 1, 1, 1, tzinfo=timezone.utc)
+    state = MarketState(
+        [
+            _event("funding", "perp", FundingPayload(rate="0.003")),
+            _timed_event("mark", "spot", MarkPricePayload(mark_price="100"), TS),
+            _timed_event("mark", "spot", MarkPricePayload(mark_price="101"), later),
+            _event("mark", "perp", MarkPricePayload(mark_price="101")),
+            _event("index", "perp", {"index_price": "101"}),
+        ]
+    )
+
+    opportunities = FundingCarryStrategy(
+        notional_usd=Decimal("1000"),
+        hedge_fee_bps=Decimal("0"),
+    ).evaluate(state)
+
+    assert len(opportunities) == 1
+    assert opportunities[0].metadata["recent_price_move_bps"] == "100.00"
+    assert opportunities[0].metadata["recent_price_move_source"] == "mark"
 
 
 def test_funding_carry_failure_messages_are_localized() -> None:

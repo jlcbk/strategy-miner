@@ -20,7 +20,7 @@ class FundingCarryStrategy:
     max_recent_price_move_bps: Decimal = Decimal("500")
 
     def required_data(self) -> set[EventType]:
-        return {EventType.FUNDING, EventType.MARK, EventType.INDEX}
+        return {EventType.FUNDING, EventType.MARK, EventType.INDEX, EventType.TRADE}
 
     def evaluate(self, market_state: MarketState) -> list[Opportunity]:
         perp_marks_by_key = {
@@ -52,7 +52,11 @@ class FundingCarryStrategy:
             index = indexes_by_key.get((funding.exchange.value, funding.symbol))
             if self._filtered_by_basis_or_index(perp_mark, spot_mark, index):
                 continue
-            recent_move_bps = self._recent_price_move_bps(market_state, funding, spot_mark)
+            recent_move_bps, recent_move_source = self._recent_price_move_bps(
+                market_state,
+                funding,
+                spot_mark,
+            )
             if (
                 recent_move_bps is not None
                 and recent_move_bps > self.max_recent_price_move_bps
@@ -134,6 +138,7 @@ class FundingCarryStrategy:
                     spot_mark=spot_mark,
                     index=index,
                     recent_move_bps=recent_move_bps,
+                    recent_move_source=recent_move_source,
                 ),
             )
             opportunity.failure_modes = self.risk_checks(opportunity)
@@ -181,6 +186,7 @@ class FundingCarryStrategy:
         spot_mark: MarketEvent | None,
         index: MarketEvent | None,
         recent_move_bps: Decimal | None,
+        recent_move_source: str | None,
     ) -> dict[str, str | None]:
         return {
             "funding_rate": str(rate),
@@ -198,6 +204,7 @@ class FundingCarryStrategy:
             "recent_price_move_bps": (
                 None if recent_move_bps is None else _format_bps(recent_move_bps)
             ),
+            "recent_price_move_source": recent_move_source,
             "index_price": None if index is None else str(_price(index)),
         }
 
@@ -214,29 +221,53 @@ class FundingCarryStrategy:
         market_state: MarketState,
         funding: MarketEvent,
         spot_mark: MarketEvent | None,
-    ) -> Decimal | None:
+    ) -> tuple[Decimal | None, str | None]:
         market_type = MarketType.SPOT if spot_mark is not None else MarketType.PERP
-        prices = [
-            event
-            for event in market_state.events
-            if event.exchange == funding.exchange
-            and event.symbol == funding.symbol
-            and event.market_type == market_type
-            and event.event_type == EventType.MARK
-        ]
-        prices.sort(key=lambda event: event.exchange_ts)
-        if len(prices) < 2:
-            return None
-        moves = [
-            abs((_price(current) - _price(previous)) / _price(previous) * Decimal("10000"))
-            for previous, current in zip(prices, prices[1:])
-            if _price(previous) > 0
-        ]
-        return max(moves, default=None)
+        trade_move = _max_sequential_move_bps(
+            [
+                event
+                for event in market_state.trades(symbol=funding.symbol)
+                if event.exchange == funding.exchange
+                and event.market_type == market_type
+            ]
+        )
+        if trade_move is not None:
+            return trade_move, "trade"
+
+        mark_move = _max_sequential_move_bps(
+            [
+                event
+                for event in market_state.events
+                if event.exchange == funding.exchange
+                and event.symbol == funding.symbol
+                and event.market_type == market_type
+                and event.event_type == EventType.MARK
+            ]
+        )
+        if mark_move is not None:
+            return mark_move, "mark"
+        return None, None
+
+
+def _max_sequential_move_bps(events: list[MarketEvent]) -> Decimal | None:
+    prices = sorted(events, key=lambda event: event.exchange_ts)
+    if len(prices) < 2:
+        return None
+    moves = [
+        abs((_price(current) - _price(previous)) / _price(previous) * Decimal("10000"))
+        for previous, current in zip(prices, prices[1:])
+        if _price(previous) > 0
+    ]
+    return max(moves, default=None)
 
 
 def _price(event: MarketEvent) -> Decimal:
-    payload_key = "index_price" if event.event_type == EventType.INDEX else "mark_price"
+    if event.event_type == EventType.INDEX:
+        payload_key = "index_price"
+    elif event.event_type == EventType.TRADE:
+        payload_key = "price"
+    else:
+        payload_key = "mark_price"
     return Decimal(str(event.payload[payload_key]))
 
 

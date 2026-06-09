@@ -136,6 +136,14 @@ class MarketState:
             ),
         )
 
+    def trades(self, *, symbol: str | None = None) -> list[MarketEvent]:
+        return [
+            event
+            for event in self.events
+            if event.event_type == EventType.TRADE
+            and (symbol is None or event.symbol == symbol.upper())
+        ]
+
     def open_interest(self, *, symbol: str | None = None) -> list[MarketEvent]:
         open_interest = [
             event
