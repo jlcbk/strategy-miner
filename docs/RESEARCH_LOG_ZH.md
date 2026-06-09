@@ -734,3 +734,23 @@ python3 -m apps.collector.main instrument-assumption \
 ### 状态结论
 
 #1 继续保持 `strategy:blocked-data`。该命令只用于人工审核后的研究数据分区补齐，不代表官方历史 exchangeInfo，不执行真实交易，不修改生产配置，也不能单独证明策略通过真实历史验证。
+
+## 2026-06-09：#2 Quarterly basis data collection plan
+
+本轮推进同为高优先级的 #2 `quarterly_basis_convergence`，为真实 replay 前的数据覆盖阶段新增采集计划：
+
+- `artifacts/strategies/quarterly_basis_convergence/data_collection_plan.json`
+
+### 工具验证结果
+
+- `generate_data_collection_jobs` 范围：Binance，BTCUSDT / ETHUSDT，spot + perp + future，2026-06-08。
+- `check_data_coverage`：`ready=false`，`covered_count=1`，`required_count=30`，`coverage_ratio=0.03`。
+- 缺失分区：`missing_items_count=29`。
+- 去重采集任务：`deduped_job_count=25`。
+- `plan_data_collection_commands`：`supported_count=13`，`blocked_count=12`。
+- 支持采集：future mark 2、spot/perp/future trade 6、fee-assumption 5。
+- 阻塞采集：instrument 6、orderbook/depth 6。
+
+### 状态结论
+
+#2 继续保持 `strategy:blocked-data`。可先在人工确认下载和磁盘预算后执行 supported mark / fee / trade 命令；但进入真实 replay 前仍必须解决 dated future `instrument_metadata` 以及 `depth_volume` 的历史 orderbook/depth 覆盖。`fee-assumption` 仍只是回放假设，不代表官方或账户实际费率。

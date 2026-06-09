@@ -267,6 +267,9 @@ def test_quarterly_basis_artifacts_are_machine_readable() -> None:
     opportunity_report = _read_json(
         ARTIFACT_ROOTS["quarterly_basis_convergence"] / "opportunity_report.json"
     )
+    data_collection_plan = _read_json(
+        ARTIFACT_ROOTS["quarterly_basis_convergence"] / "data_collection_plan.json"
+    )
 
     assert report["kind"] == "research_report"
     assert proposal["kind"] == "strategy_proposal"
@@ -286,9 +289,66 @@ def test_quarterly_basis_artifacts_are_machine_readable() -> None:
     assert opportunity_report["opportunities"][0]["metadata"]["annualized_basis"] == "0.3650"
     assert opportunity_report["opportunities"][0]["metadata"]["days_to_expiry"] == "30.00"
     assert (
+        "artifacts/strategies/quarterly_basis_convergence/data_collection_plan.json"
+        in proposal["candidate_files"]
+    )
+    assert (
         "artifacts/strategies/quarterly_basis_convergence/opportunity_report.json"
         in proposal["candidate_files"]
     )
+    assert data_collection_plan["kind"] == "data_collection_plan"
+    assert data_collection_plan["strategy_name"] == "quarterly_basis_convergence"
+    assert data_collection_plan["coverage"]["ready"] is False
+    assert data_collection_plan["coverage"]["covered_count"] == 1
+    assert data_collection_plan["coverage"]["required_count"] == 30
+    assert data_collection_plan["job_summary"]["deduped_job_count"] == 25
+    assert data_collection_plan["command_summary"]["supported_count"] == 13
+    assert data_collection_plan["command_summary"]["blocked_count"] == 12
+    assert data_collection_plan["command_summary"]["blocked_by_event_type"] == {
+        "instrument": 6,
+        "orderbook": 6,
+    }
+
+
+def test_quarterly_basis_data_collection_plan_matches_supported_fields() -> None:
+    data_collection_plan = _read_json(
+        ARTIFACT_ROOTS["quarterly_basis_convergence"] / "data_collection_plan.json"
+    )
+    schema = _read_json(DATA_COLLECTION_PLAN_SCHEMA_PATH)
+
+    assert set(data_collection_plan) == {
+        "kind",
+        "title",
+        "created_by",
+        "created_at",
+        "strategy_name",
+        "issue_number",
+        "scope",
+        "generated_from_tools",
+        "coverage",
+        "job_summary",
+        "command_summary",
+        "supported_command_templates",
+        "blocked_commands",
+        "next_actions",
+        "safety_boundary",
+    }
+    assert schema["properties"]["kind"]["const"] == data_collection_plan["kind"]
+    assert {
+        template["execution_group"]
+        for template in data_collection_plan["supported_command_templates"]
+    } == {
+        "archive_mark",
+        "archive_trade",
+        "manual_assumption",
+    }
+    assert {
+        blocked["execution_group"]
+        for blocked in data_collection_plan["blocked_commands"]
+    } == {
+        "metadata_snapshot",
+        "stream_orderbook",
+    }
 
 
 def test_quarterly_basis_opportunity_report_matches_supported_schema_fields() -> None:
@@ -617,6 +677,16 @@ def test_strategy_queue_matches_artifact_inventory() -> None:
     assert "evidence hash" in funding["next_action"]
     assert (
         ARTIFACT_ROOTS["funding_carry_vol_filter"] / "data_collection_plan.json"
+    ).exists()
+
+    quarterly = [
+        item for item in strategies
+        if item["strategy_name"] == "quarterly_basis_convergence"
+    ][0]
+    assert quarterly["has_data_collection_plan"] is True
+    assert "data_collection_plan.json" in quarterly["next_action"]
+    assert (
+        ARTIFACT_ROOTS["quarterly_basis_convergence"] / "data_collection_plan.json"
     ).exists()
 
     stablecoin = [

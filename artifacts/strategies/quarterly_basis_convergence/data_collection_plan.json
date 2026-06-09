@@ -1,0 +1,215 @@
+{
+  "kind": "data_collection_plan",
+  "title": "Quarterly futures basis convergence minimal data collection plan",
+  "created_by": "codex",
+  "created_at": "2026-06-09T00:00:00+00:00",
+  "strategy_name": "quarterly_basis_convergence",
+  "issue_number": 2,
+  "scope": {
+    "root": ".data/lake",
+    "exchange": "binance",
+    "market_types": [
+      "spot",
+      "perp",
+      "future"
+    ],
+    "symbols": [
+      "BTCUSDT",
+      "ETHUSDT"
+    ],
+    "start_date": "2026-06-08",
+    "end_date": "2026-06-08",
+    "current_date_for_command_policy": "2026-06-09"
+  },
+  "generated_from_tools": [
+    "generate_data_collection_jobs",
+    "plan_data_collection_commands"
+  ],
+  "coverage": {
+    "ready": false,
+    "covered_count": 1,
+    "required_count": 30,
+    "coverage_ratio": "0.03",
+    "unsupported_requirements": [],
+    "manual_requirements": []
+  },
+  "job_summary": {
+    "missing_items_count": 29,
+    "deduped_job_count": 25,
+    "jobs_by_event_type": {
+      "mark": 2,
+      "trade": 6,
+      "instrument": 6,
+      "fee": 5,
+      "orderbook": 6
+    },
+    "jobs_by_market_type": {
+      "spot": 8,
+      "perp": 7,
+      "future": 10
+    }
+  },
+  "command_summary": {
+    "supported_count": 13,
+    "blocked_count": 12,
+    "risk_counts": {
+      "low": 11,
+      "medium": 2,
+      "high": 12
+    },
+    "supported_by_event_type": {
+      "mark": 2,
+      "trade": 6,
+      "fee": 5
+    },
+    "blocked_by_event_type": {
+      "instrument": 6,
+      "orderbook": 6
+    },
+    "execution_groups": {
+      "archive_mark": 2,
+      "archive_trade": 6,
+      "manual_assumption": 5,
+      "metadata_snapshot": 6,
+      "stream_orderbook": 6
+    }
+  },
+  "supported_command_templates": [
+    {
+      "execution_group": "archive_mark",
+      "event_type": "mark",
+      "symbols": [
+        "BTCUSDT",
+        "ETHUSDT"
+      ],
+      "market_type": "future",
+      "command_template": [
+        "python3",
+        "-m",
+        "apps.collector.main",
+        "historical-mark",
+        "--exchange",
+        "binance",
+        "--market-type",
+        "future",
+        "--symbol",
+        "{symbol}",
+        "--day",
+        "2026-06-08",
+        "--data-lake-root",
+        ".data/lake",
+        "--download-dir",
+        "var/downloads"
+      ],
+      "risk_tier": "medium",
+      "requires_confirmation": false
+    },
+    {
+      "execution_group": "archive_trade",
+      "event_type": "trade",
+      "symbols": [
+        "BTCUSDT",
+        "ETHUSDT"
+      ],
+      "market_types": [
+        "spot",
+        "perp",
+        "future"
+      ],
+      "command_template": [
+        "python3",
+        "-m",
+        "apps.collector.main",
+        "historical-trades",
+        "--exchange",
+        "binance",
+        "--market-type",
+        "{market_type}",
+        "--symbol",
+        "{symbol}",
+        "--day",
+        "2026-06-08",
+        "--data-lake-root",
+        ".data/lake",
+        "--download-dir",
+        "var/downloads"
+      ],
+      "risk_tier": "high",
+      "requires_confirmation": true
+    },
+    {
+      "execution_group": "manual_assumption",
+      "event_type": "fee",
+      "missing_partitions": [
+        "binance spot BTCUSDT",
+        "binance spot ETHUSDT",
+        "binance perp ETHUSDT",
+        "binance future BTCUSDT",
+        "binance future ETHUSDT"
+      ],
+      "command_template": [
+        "python3",
+        "-m",
+        "apps.collector.main",
+        "fee-assumption",
+        "--exchange",
+        "binance",
+        "--market-type",
+        "{market_type}",
+        "--symbol",
+        "{symbol}",
+        "--day",
+        "2026-06-08",
+        "--data-lake-root",
+        ".data/lake",
+        "--maker-bps",
+        "10",
+        "--taker-bps",
+        "10",
+        "--fee-tier",
+        "conservative_manual"
+      ],
+      "risk_tier": "low",
+      "requires_confirmation": false,
+      "boundary": "fee-assumption is a replay assumption only and must be replaced by actual account/exchange fee data before manual review."
+    }
+  ],
+  "blocked_commands": [
+    {
+      "execution_group": "metadata_snapshot",
+      "event_type": "instrument",
+      "affected_partitions": [
+        "binance spot BTCUSDT",
+        "binance spot ETHUSDT",
+        "binance perp BTCUSDT",
+        "binance perp ETHUSDT",
+        "binance future BTCUSDT",
+        "binance future ETHUSDT"
+      ],
+      "reason": "instrument-snapshot collector 只能采当前交易规则，不能回补历史 instrument 分区",
+      "next_action": "Create a dated futures-aware metadata_resolution_plan before writing historical instrument partitions; future contracts must include expiry, contract size and settlement assumptions."
+    },
+    {
+      "execution_group": "stream_orderbook",
+      "event_type": "orderbook",
+      "affected_partitions": [
+        "binance spot BTCUSDT",
+        "binance spot ETHUSDT",
+        "binance perp BTCUSDT",
+        "binance perp ETHUSDT",
+        "binance future BTCUSDT",
+        "binance future ETHUSDT"
+      ],
+      "reason": "orderbook-snapshot collector 只能采当前盘口，不能回补历史 orderbook 分区",
+      "next_action": "Use a historical depth archive or switch depth_volume validation to future replay windows accumulated after live orderbook collection starts."
+    }
+  ],
+  "next_actions": [
+    "Run only the supported mark and fee commands first; run trade archive commands only after human confirmation of disk and download budget.",
+    "Do not treat fee-assumption as official fees; replace it with actual fee partitions before strategy validation.",
+    "Resolve instrument metadata with a futures-aware dated snapshot or a reviewer-approved metadata assumption before using the 2026-06-08 replay window.",
+    "Resolve depth_volume by adding a historical orderbook/depth archive or by moving validation to a future window with accumulated orderbook snapshots.",
+    "After data ingestion and blocker resolution, rerun check_data_coverage for the same scope before replay beyond deterministic fixtures."
+  ],
+  "safety_boundary": "This plan collects research data only. It does not place orders, modify production configuration, enable live trading or mark the strategy production-ready."
+}

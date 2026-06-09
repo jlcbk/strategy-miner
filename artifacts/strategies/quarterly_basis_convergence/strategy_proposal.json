@@ -62,6 +62,7 @@
   "candidate_files": [
     "artifacts/strategies/quarterly_basis_convergence/research_report.json",
     "artifacts/strategies/quarterly_basis_convergence/strategy_proposal.json",
+    "artifacts/strategies/quarterly_basis_convergence/data_collection_plan.json",
     "artifacts/strategies/quarterly_basis_convergence/opportunity_report.json",
     "packages/strategies/basis.py"
   ]

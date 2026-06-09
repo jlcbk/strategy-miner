@@ -39,6 +39,7 @@
       "funnel_score": "85.00",
       "artifact_root": "artifacts/strategies/quarterly_basis_convergence",
       "has_evaluator": true,
+      "has_data_collection_plan": true,
       "opportunity_report_type": "deterministic_fixture",
       "opportunity_count": 1,
       "coverage": {
@@ -49,7 +50,7 @@
         "scope": "Binance BTC/ETH spot+perp+future, 2026-06-08"
       },
       "operator_fit": "High priority: dated futures basis carry, day-to-week holding, suitable for semi-automatic scan and manual confirmation.",
-      "next_action": "Backfill dated future mark, spot/perp trade candles, instrument metadata, fees and depth_volume partitions."
+      "next_action": "Use data_collection_plan.json to backfill 13 supported Binance partitions, then resolve 6 instrument and 6 historical orderbook/depth blockers before validation-ready."
     },
     {
       "issue_number": 3,
