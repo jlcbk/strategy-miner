@@ -8,6 +8,7 @@ from packages.normalization import (
     OpenInterestPayload,
 )
 from packages.strategies import (
+    failure_message_zh,
     FundingCarryStrategy,
     FuturesBasisStrategy,
     MarketState,
@@ -71,6 +72,94 @@ def test_funding_carry_outputs_failure_for_unhedged_positive_edge() -> None:
     assert len(opportunities) == 1
     assert opportunities[0].net_edge_usd == Decimal("3.000")
     assert "requires_spot_or_correlated_hedge_before_execution" in opportunities[0].failure_modes
+    assert "missing_index_price_for_depeg_filter" in opportunities[0].failure_modes
+
+
+def test_funding_carry_outputs_spot_perp_hedged_candidate() -> None:
+    state = MarketState(
+        [
+            _event("funding", "perp", FundingPayload(rate="0.003")),
+            _event("mark", "spot", MarkPricePayload(mark_price="100")),
+            _event("mark", "perp", MarkPricePayload(mark_price="100")),
+            _event("index", "perp", {"index_price": "100"}),
+        ]
+    )
+
+    opportunities = FundingCarryStrategy(
+        notional_usd=Decimal("1000"),
+        hedge_fee_bps=Decimal("0"),
+    ).evaluate(state)
+
+    assert len(opportunities) == 1
+    opportunity = opportunities[0]
+    assert opportunity.strategy == "funding_carry_vol_filter"
+    assert len(opportunity.legs) == 2
+    assert opportunity.legs[0].market_type == "spot"
+    assert opportunity.legs[0].side == "buy"
+    assert opportunity.legs[1].market_type == "perp"
+    assert opportunity.legs[1].side == "sell"
+    assert opportunity.net_edge_usd == Decimal("3.000")
+    assert opportunity.metadata["hedge_direction"] == "spot_long_perp_short"
+    assert opportunity.metadata["spot_perp_basis_bps"] == "0.00"
+    assert opportunity.metadata["mark_index_divergence_bps"] == "0.00"
+    assert opportunity.failure_modes == []
+
+
+def test_funding_carry_filters_extreme_spot_perp_basis() -> None:
+    state = MarketState(
+        [
+            _event("funding", "perp", FundingPayload(rate="0.003")),
+            _event("mark", "spot", MarkPricePayload(mark_price="100")),
+            _event("mark", "perp", MarkPricePayload(mark_price="105")),
+            _event("index", "perp", {"index_price": "105"}),
+        ]
+    )
+
+    opportunities = FundingCarryStrategy(
+        max_spot_perp_basis_bps=Decimal("200"),
+    ).evaluate(state)
+
+    assert opportunities == []
+
+
+def test_funding_carry_filters_mark_index_depeg() -> None:
+    state = MarketState(
+        [
+            _event("funding", "perp", FundingPayload(rate="0.003")),
+            _event("mark", "spot", MarkPricePayload(mark_price="100")),
+            _event("mark", "perp", MarkPricePayload(mark_price="100")),
+            _event("index", "perp", {"index_price": "98"}),
+        ]
+    )
+
+    opportunities = FundingCarryStrategy(
+        max_mark_index_divergence_bps=Decimal("100"),
+    ).evaluate(state)
+
+    assert opportunities == []
+
+
+def test_funding_carry_filters_recent_price_move_proxy() -> None:
+    later = datetime(2024, 1, 1, 1, tzinfo=timezone.utc)
+    state = MarketState(
+        [
+            _event("funding", "perp", FundingPayload(rate="0.003")),
+            _timed_event("mark", "spot", MarkPricePayload(mark_price="100"), TS),
+            _timed_event("mark", "spot", MarkPricePayload(mark_price="107"), later),
+            _event("mark", "perp", MarkPricePayload(mark_price="107")),
+            _event("index", "perp", {"index_price": "107"}),
+        ]
+    )
+
+    opportunities = FundingCarryStrategy(
+        max_recent_price_move_bps=Decimal("500"),
+    ).evaluate(state)
+
+    assert opportunities == []
+
+
+def test_funding_carry_failure_messages_are_localized() -> None:
+    assert "index price" in failure_message_zh("missing_index_price_for_depeg_filter")
 
 
 def test_futures_basis_detects_spot_future_gap() -> None:

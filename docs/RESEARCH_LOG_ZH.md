@@ -273,3 +273,29 @@
 ### 状态结论
 
 #1 是当前最贴近 operator profile 的高优先级候选之一，已经具备机器可读研究产物和 fixture 准备条件。但它仍保持 `strategy:blocked-data`，因为真实 data lake 尚未补齐目标窗口的行情、费用和 instrument 分区。下一步可以优先补 `trade` 分区或创建最小 fixture，验证波动过滤和 funding 反转退出逻辑。
+
+## 2026-06-09：#1 Funding carry 最小双腿 evaluator
+
+本轮将内置 `FundingCarryStrategy` 对齐为 `funding_carry_vol_filter`，并补齐 #1 的最小 fixture 行为。
+
+### evaluator 行为
+
+- 有 spot reference price 时，输出 `spot buy + perp sell` 双腿候选。
+- 只处理正 funding carry，默认跳过负 funding，避免引入 spot short、借币或更复杂库存假设。
+- 使用 perp mark 和 index price 做 mark/index 脱锚过滤。
+- 使用 spot/perp basis 过滤极端 basis 窗口。
+- 使用最近 spot mark 变动作为最小波动代理，过滤短期价格大幅跳变窗口。
+- 缺少 spot reference 时仍可输出单腿研究候选，但会标记 `requires_spot_or_correlated_hedge_before_execution`。
+- 缺少 index price 时会标记 `missing_index_price_for_depeg_filter`。
+
+### 测试覆盖
+
+- 正 funding + spot/perp/index 正常时生成双腿候选。
+- 缺 spot 时保留阻塞 failure mode。
+- spot/perp basis 过大时过滤。
+- mark/index 脱锚时过滤。
+- 近期价格变动代理超过阈值时过滤。
+
+### 状态结论
+
+#1 已从纯文本研究产物推进到最小可测 evaluator。它仍不是验证通过策略，也不能进入实盘；下一步需要用真实或 fixture candle/trade 数据替换当前的最小波动代理，并补齐 data lake 分区后跑 replay/backtest。
