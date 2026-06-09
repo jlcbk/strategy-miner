@@ -1,0 +1,263 @@
+{
+  "kind": "data_collection_plan",
+  "title": "Funding carry volatility filter minimal data collection plan",
+  "created_by": "codex",
+  "created_at": "2026-06-09T00:00:00+00:00",
+  "strategy_name": "funding_carry_vol_filter",
+  "issue_number": 1,
+  "scope": {
+    "root": ".data/lake",
+    "exchange": "binance",
+    "market_types": [
+      "spot",
+      "perp"
+    ],
+    "symbols": [
+      "BTCUSDT",
+      "ETHUSDT",
+      "SOLUSDT"
+    ],
+    "start_date": "2026-06-08",
+    "end_date": "2026-06-08",
+    "current_date_for_command_policy": "2026-06-09"
+  },
+  "generated_from_tools": [
+    "generate_data_collection_jobs",
+    "plan_data_collection_commands"
+  ],
+  "coverage": {
+    "ready": false,
+    "covered_count": 1,
+    "required_count": 33,
+    "coverage_ratio": "0.03",
+    "unsupported_requirements": [],
+    "manual_requirements": []
+  },
+  "job_summary": {
+    "missing_items_count": 32,
+    "deduped_job_count": 26,
+    "jobs_by_event_type": {
+      "funding": 3,
+      "mark": 3,
+      "index": 3,
+      "trade": 6,
+      "fee": 5,
+      "instrument": 6
+    },
+    "jobs_by_market_type": {
+      "spot": 9,
+      "perp": 17
+    }
+  },
+  "command_summary": {
+    "supported_count": 20,
+    "blocked_count": 6,
+    "risk_counts": {
+      "low": 14,
+      "medium": 6,
+      "high": 6
+    },
+    "supported_by_event_type": {
+      "funding": 3,
+      "mark": 3,
+      "index": 3,
+      "trade": 6,
+      "fee": 5
+    },
+    "blocked_by_event_type": {
+      "instrument": 6
+    },
+    "execution_groups": {
+      "small_rest": 3,
+      "archive_mark": 3,
+      "archive_index": 3,
+      "archive_trade": 6,
+      "manual_assumption": 5,
+      "metadata_snapshot": 6
+    }
+  },
+  "supported_command_templates": [
+    {
+      "execution_group": "small_rest",
+      "event_type": "funding",
+      "symbols": [
+        "BTCUSDT",
+        "ETHUSDT",
+        "SOLUSDT"
+      ],
+      "market_type": "perp",
+      "command_template": [
+        "python3",
+        "-m",
+        "apps.collector.main",
+        "funding",
+        "--exchange",
+        "binance",
+        "--market-type",
+        "perp",
+        "--symbol",
+        "{symbol}",
+        "--day",
+        "2026-06-08",
+        "--data-lake-root",
+        ".data/lake"
+      ],
+      "risk_tier": "low",
+      "requires_confirmation": false
+    },
+    {
+      "execution_group": "archive_mark",
+      "event_type": "mark",
+      "symbols": [
+        "BTCUSDT",
+        "ETHUSDT",
+        "SOLUSDT"
+      ],
+      "market_type": "perp",
+      "command_template": [
+        "python3",
+        "-m",
+        "apps.collector.main",
+        "historical-mark",
+        "--exchange",
+        "binance",
+        "--market-type",
+        "perp",
+        "--symbol",
+        "{symbol}",
+        "--day",
+        "2026-06-08",
+        "--data-lake-root",
+        ".data/lake",
+        "--download-dir",
+        "var/downloads"
+      ],
+      "risk_tier": "medium",
+      "requires_confirmation": false
+    },
+    {
+      "execution_group": "archive_index",
+      "event_type": "index",
+      "symbols": [
+        "BTCUSDT",
+        "ETHUSDT",
+        "SOLUSDT"
+      ],
+      "market_type": "perp",
+      "command_template": [
+        "python3",
+        "-m",
+        "apps.collector.main",
+        "historical-index",
+        "--exchange",
+        "binance",
+        "--market-type",
+        "perp",
+        "--symbol",
+        "{symbol}",
+        "--day",
+        "2026-06-08",
+        "--data-lake-root",
+        ".data/lake",
+        "--interval",
+        "1m",
+        "--limit",
+        "1500"
+      ],
+      "risk_tier": "low",
+      "requires_confirmation": false
+    },
+    {
+      "execution_group": "archive_trade",
+      "event_type": "trade",
+      "symbols": [
+        "BTCUSDT",
+        "ETHUSDT",
+        "SOLUSDT"
+      ],
+      "market_types": [
+        "spot",
+        "perp"
+      ],
+      "command_template": [
+        "python3",
+        "-m",
+        "apps.collector.main",
+        "historical-trades",
+        "--exchange",
+        "binance",
+        "--market-type",
+        "{market_type}",
+        "--symbol",
+        "{symbol}",
+        "--day",
+        "2026-06-08",
+        "--data-lake-root",
+        ".data/lake",
+        "--download-dir",
+        "var/downloads"
+      ],
+      "risk_tier": "high",
+      "requires_confirmation": true
+    },
+    {
+      "execution_group": "manual_assumption",
+      "event_type": "fee",
+      "missing_partitions": [
+        "binance spot BTCUSDT",
+        "binance spot ETHUSDT",
+        "binance spot SOLUSDT",
+        "binance perp ETHUSDT",
+        "binance perp SOLUSDT"
+      ],
+      "command_template": [
+        "python3",
+        "-m",
+        "apps.collector.main",
+        "fee-assumption",
+        "--exchange",
+        "binance",
+        "--market-type",
+        "{market_type}",
+        "--symbol",
+        "{symbol}",
+        "--day",
+        "2026-06-08",
+        "--data-lake-root",
+        ".data/lake",
+        "--maker-bps",
+        "10",
+        "--taker-bps",
+        "10",
+        "--fee-tier",
+        "conservative_manual"
+      ],
+      "risk_tier": "low",
+      "requires_confirmation": false,
+      "boundary": "fee-assumption is a replay assumption only and must be replaced by actual account/exchange fee data before manual review."
+    }
+  ],
+  "blocked_commands": [
+    {
+      "execution_group": "metadata_snapshot",
+      "event_type": "instrument",
+      "affected_partitions": [
+        "binance spot BTCUSDT",
+        "binance spot ETHUSDT",
+        "binance spot SOLUSDT",
+        "binance perp BTCUSDT",
+        "binance perp ETHUSDT",
+        "binance perp SOLUSDT"
+      ],
+      "reason": "instrument-snapshot collector 只能采当前交易规则，不能回补历史 instrument 分区",
+      "next_action": "Add dated instrument metadata snapshots or record a same-day manual instrument snapshot before using the 2026-06-08 replay window."
+    }
+  ],
+  "next_actions": [
+    "Run only the supported collector commands in a separate data-ingestion step after human confirmation of disk/network budget.",
+    "Do not treat fee-assumption as official fees; replace it with actual fee partitions before strategy validation.",
+    "Resolve the instrument_metadata blocker before moving #1 from strategy:blocked-data to strategy:validation-ready.",
+    "After data ingestion, rerun check_data_coverage for the same scope and only then consider replay beyond deterministic fixtures."
+  ],
+  "safety_boundary": "This plan collects research data only. It does not place orders, modify production configuration, enable live trading or mark the strategy production-ready."
+}

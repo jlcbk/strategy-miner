@@ -16,6 +16,7 @@ ARTIFACT_ROOTS = {
 }
 STRATEGY_QUEUE_PATH = Path("artifacts/strategies/strategy_queue.json")
 MANUAL_GATE_SCHEMA_PATH = Path("schemas/manual_gate_checklist.schema.json")
+DATA_COLLECTION_PLAN_SCHEMA_PATH = Path("schemas/data_collection_plan.schema.json")
 
 
 def test_cross_exchange_funding_artifacts_are_machine_readable() -> None:
@@ -98,6 +99,9 @@ def test_funding_carry_artifacts_are_machine_readable() -> None:
     opportunity_report = _read_json(
         ARTIFACT_ROOTS["funding_carry_vol_filter"] / "opportunity_report.json"
     )
+    data_collection_plan = _read_json(
+        ARTIFACT_ROOTS["funding_carry_vol_filter"] / "data_collection_plan.json"
+    )
 
     assert report["kind"] == "research_report"
     assert proposal["kind"] == "strategy_proposal"
@@ -117,8 +121,67 @@ def test_funding_carry_artifacts_are_machine_readable() -> None:
     assert opportunity_report["opportunities"][0]["failure_modes"] == []
     assert opportunity_report["opportunities"][0]["metadata"]["recent_price_move_source"] == "trade"
     assert (
+        "artifacts/strategies/funding_carry_vol_filter/data_collection_plan.json"
+        in proposal["candidate_files"]
+    )
+    assert (
         "artifacts/strategies/funding_carry_vol_filter/opportunity_report.json"
         in proposal["candidate_files"]
+    )
+    assert data_collection_plan["kind"] == "data_collection_plan"
+    assert data_collection_plan["strategy_name"] == "funding_carry_vol_filter"
+    assert data_collection_plan["coverage"]["ready"] is False
+    assert data_collection_plan["coverage"]["covered_count"] == 1
+    assert data_collection_plan["coverage"]["required_count"] == 33
+    assert data_collection_plan["job_summary"]["deduped_job_count"] == 26
+    assert data_collection_plan["command_summary"]["supported_count"] == 20
+    assert data_collection_plan["command_summary"]["blocked_count"] == 6
+    assert data_collection_plan["command_summary"]["blocked_by_event_type"] == {
+        "instrument": 6
+    }
+    assert "place orders" in data_collection_plan["safety_boundary"]
+
+
+def test_funding_carry_data_collection_plan_matches_supported_fields() -> None:
+    data_collection_plan = _read_json(
+        ARTIFACT_ROOTS["funding_carry_vol_filter"] / "data_collection_plan.json"
+    )
+    schema = _read_json(DATA_COLLECTION_PLAN_SCHEMA_PATH)
+
+    assert set(data_collection_plan) == {
+        "kind",
+        "title",
+        "created_by",
+        "created_at",
+        "strategy_name",
+        "issue_number",
+        "scope",
+        "generated_from_tools",
+        "coverage",
+        "job_summary",
+        "command_summary",
+        "supported_command_templates",
+        "blocked_commands",
+        "next_actions",
+        "safety_boundary",
+    }
+    assert schema["properties"]["kind"]["const"] == data_collection_plan["kind"]
+    assert data_collection_plan["generated_from_tools"] == [
+        "generate_data_collection_jobs",
+        "plan_data_collection_commands",
+    ]
+    assert {
+        template["execution_group"]
+        for template in data_collection_plan["supported_command_templates"]
+    } == {
+        "small_rest",
+        "archive_mark",
+        "archive_index",
+        "archive_trade",
+        "manual_assumption",
+    }
+    assert data_collection_plan["blocked_commands"][0]["execution_group"] == (
+        "metadata_snapshot"
     )
 
 
@@ -486,6 +549,15 @@ def test_strategy_queue_matches_artifact_inventory() -> None:
         assert (artifact_root / "research_report.json").exists()
         assert (artifact_root / "strategy_proposal.json").exists()
         assert (artifact_root / "opportunity_report.json").exists()
+
+    funding = [
+        item for item in strategies
+        if item["strategy_name"] == "funding_carry_vol_filter"
+    ][0]
+    assert funding["has_data_collection_plan"] is True
+    assert (
+        ARTIFACT_ROOTS["funding_carry_vol_filter"] / "data_collection_plan.json"
+    ).exists()
 
     stablecoin = [
         item for item in strategies

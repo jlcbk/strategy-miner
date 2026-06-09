@@ -658,3 +658,24 @@
 ### 状态结论
 
 #6 继续保持 `strategy:blocked-data`。人工 checklist 通过前，只能生成 blocked alert，不能进入自动验证队列、不能生成自动买入指令，也不能标记为 validation-ready 或 production-ready。
+
+## 2026-06-09：#1 Funding carry data collection plan
+
+本轮优先推进队列中最贴近 operator profile 的 #1 `funding_carry_vol_filter`。该策略已有 evaluator 和 deterministic fixture，但真实 replay 仍受数据覆盖阻塞，因此本轮新增数据采集计划 artifact：
+
+- `artifacts/strategies/funding_carry_vol_filter/data_collection_plan.json`
+- `schemas/data_collection_plan.schema.json`
+
+### 工具验证结果
+
+- `generate_data_collection_jobs` 范围：Binance，BTCUSDT / ETHUSDT / SOLUSDT，spot + perp，2026-06-08。
+- `check_data_coverage`：`ready=false`，`covered_count=1`，`required_count=33`，`coverage_ratio=0.03`。
+- 缺失分区：`missing_items_count=32`。
+- 去重采集任务：`deduped_job_count=26`。
+- `plan_data_collection_commands`：`supported_count=20`，`blocked_count=6`。
+- 支持采集：funding 3、mark 3、index 3、trade 6、fee-assumption 5。
+- 阻塞采集：instrument 6，原因是 `instrument-snapshot collector 只能采当前交易规则，不能回补历史 instrument 分区`。
+
+### 状态结论
+
+#1 继续保持 `strategy:blocked-data`。下一步可以在人工确认磁盘和网络预算后执行 20 个支持的 collector 命令，但必须先解决 6 个 instrument metadata snapshot 阻塞，才能考虑从 deterministic fixture 进入真实数据 replay。`fee-assumption` 仍只是回放假设，不代表官方或账户实际费率。

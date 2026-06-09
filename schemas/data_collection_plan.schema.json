@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://strategy-miner.local/schemas/data_collection_plan.schema.json",
+  "title": "数据采集计划",
+  "type": "object",
+  "required": [
+    "kind",
+    "title",
+    "created_by",
+    "strategy_name",
+    "scope",
+    "generated_from_tools",
+    "coverage",
+    "job_summary",
+    "command_summary",
+    "supported_command_templates",
+    "blocked_commands",
+    "next_actions",
+    "safety_boundary"
+  ],
+  "properties": {
+    "kind": { "const": "data_collection_plan" },
+    "title": { "type": "string", "minLength": 1 },
+    "created_by": { "type": "string", "minLength": 1 },
+    "created_at": { "type": "string" },
+    "strategy_name": { "type": "string", "minLength": 1 },
+    "issue_number": { "type": "integer" },
+    "scope": { "type": "object" },
+    "generated_from_tools": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1
+    },
+    "coverage": { "type": "object" },
+    "job_summary": { "type": "object" },
+    "command_summary": { "type": "object" },
+    "supported_command_templates": {
+      "type": "array",
+      "items": { "type": "object" }
+    },
+    "blocked_commands": {
+      "type": "array",
+      "items": { "type": "object" }
+    },
+    "next_actions": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1
+    },
+    "safety_boundary": { "type": "string", "minLength": 1 }
+  },
+  "additionalProperties": false
+}

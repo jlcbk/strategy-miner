@@ -16,6 +16,7 @@
       "funnel_score": "85.00",
       "artifact_root": "artifacts/strategies/funding_carry_vol_filter",
       "has_evaluator": true,
+      "has_data_collection_plan": true,
       "opportunity_report_type": "deterministic_fixture",
       "opportunity_count": 1,
       "coverage": {
@@ -26,7 +27,7 @@
         "scope": "Binance BTC/ETH/SOL spot+perp, 2026-06-08"
       },
       "operator_fit": "High priority: single-exchange spot/perp carry, minute-to-day workflow, suitable for offline scan and manual confirmation.",
-      "next_action": "Backfill funding, mark/index, trade, fee and instrument partitions before real replay."
+      "next_action": "Use data_collection_plan.json to backfill 20 supported Binance partitions, then resolve 6 instrument_metadata snapshot blockers before validation-ready."
     },
     {
       "issue_number": 2,
