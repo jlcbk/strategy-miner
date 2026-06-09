@@ -234,6 +234,12 @@ def test_funding_carry_metadata_resolution_plan_matches_supported_fields() -> No
     }
     assert metadata_resolution["manual_assumption_limits"]["max_days_between_snapshot_and_replay"] == 1
     assert metadata_resolution["output_partition_contract"]["event_type"] == "instrument"
+    assert (
+        "instrument-assumption"
+        in metadata_resolution["output_partition_contract"][
+            "manual_assumption_command_template"
+        ]
+    )
     assert "production-ready" in metadata_resolution["safety_boundary"]
 
 
@@ -608,6 +614,7 @@ def test_strategy_queue_matches_artifact_inventory() -> None:
     ][0]
     assert funding["has_data_collection_plan"] is True
     assert "instrument_metadata_resolution.json" in funding["next_action"]
+    assert "evidence hash" in funding["next_action"]
     assert (
         ARTIFACT_ROOTS["funding_carry_vol_filter"] / "data_collection_plan.json"
     ).exists()

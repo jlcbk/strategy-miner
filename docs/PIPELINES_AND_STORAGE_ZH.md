@@ -143,6 +143,7 @@ python3 -m apps.cli.main run-tool plan_data_collection_commands --payload-json '
 - Binance `open_interest` -> `open-interest`，但官方历史 REST 只支持最近约 1 个月
 - Binance `orderbook` -> `orderbook-snapshot`，只支持当前盘口快照，不能回补历史分区
 - Binance `instrument` -> `instrument-snapshot`，只支持当前交易规则快照，不能回补历史分区
+- 人工 `instrument` 假设 -> `instrument-assumption`，必须带 evidence hash 和 reviewer note，不代表官方历史 exchangeInfo
 - Bybit `trade` -> `historical-trades`
 - Bybit `mark` -> `historical-mark`
 - Bybit `funding` -> `funding`

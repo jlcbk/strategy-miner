@@ -702,3 +702,35 @@
 ### 状态结论
 
 #1 继续保持 `strategy:blocked-data`。该计划只定义如何解除元数据分区阻塞，不执行数据采集，不生成实盘配置，不把人工静态假设描述为官方历史数据。下一步是选择官方 dated snapshot 或完成人工静态元数据审核，然后写入 instrument 分区并重新运行 `check_data_coverage`。
+
+## 2026-06-09：#1 Manual instrument assumption collector
+
+本轮把上一轮的 `manual_static_metadata_assumption` 路径推进为显式 collector 能力：
+
+- 新增 `instrument-assumption` collector 命令。
+- source 固定为 `manual_instrument_metadata_assumption`。
+- 必须提供 `--evidence-hash` 和 `--assumption-note`。
+- 写入 `EventType.INSTRUMENT` 分区，payload 为 `Instrument`，`raw` 中保留 evidence source、reviewer 和边界说明。
+- `instrument_metadata_resolution.json` 增加 `manual_assumption_command_template`。
+
+示例命令模板：
+
+```bash
+python3 -m apps.collector.main instrument-assumption \
+  --exchange binance \
+  --market-type perp \
+  --symbol BTCUSDT \
+  --day 2026-06-08 \
+  --data-lake-root .data/lake \
+  --price-precision 2 \
+  --qty-precision 3 \
+  --contract-size 1 \
+  --evidence-hash '<hash>' \
+  --evidence-source '<source>' \
+  --assumption-note '<review note>' \
+  --reviewed-by '<reviewer>'
+```
+
+### 状态结论
+
+#1 继续保持 `strategy:blocked-data`。该命令只用于人工审核后的研究数据分区补齐，不代表官方历史 exchangeInfo，不执行真实交易，不修改生产配置，也不能单独证明策略通过真实历史验证。

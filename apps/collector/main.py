@@ -18,6 +18,7 @@ from packages.normalization.models import (
     EventType,
     Exchange,
     FeeSchedule,
+    Instrument,
     MarketEvent,
     MarketType,
 )
@@ -287,6 +288,60 @@ def ingest_instrument_snapshot(
     return DataLakeWriter(data_lake_root).write_events(events)
 
 
+def ingest_instrument_assumption(
+    *,
+    exchange: Exchange,
+    market_type: MarketType,
+    symbol: str,
+    day: date,
+    data_lake_root: Path,
+    price_precision: int | None,
+    qty_precision: int | None,
+    contract_size: str | None,
+    evidence_hash: str,
+    evidence_source: str,
+    assumption_note: str,
+    reviewed_by: str,
+) -> list[Path]:
+    if not evidence_hash.strip():
+        raise ValueError("instrument-assumption 需要 --evidence-hash")
+    if not assumption_note.strip():
+        raise ValueError("instrument-assumption 需要 --assumption-note")
+    normalized = normalize_symbol(exchange, symbol, market_type)
+    event_ts = datetime.combine(day, time.min, tzinfo=timezone.utc)
+    raw = {
+        "assumption_note": assumption_note,
+        "evidence_hash": evidence_hash,
+        "evidence_source": evidence_source,
+        "reviewed_by": reviewed_by,
+        "source_boundary": "manual static metadata assumption, not official historical exchangeInfo",
+    }
+    event = MarketEvent(
+        exchange=exchange,
+        market_type=market_type,
+        symbol=normalized.symbol,
+        base_asset=normalized.base_asset,
+        quote_asset=normalized.quote_asset,
+        event_type=EventType.INSTRUMENT,
+        exchange_ts=event_ts,
+        local_ts=datetime.now(timezone.utc),
+        source="manual_instrument_metadata_assumption",
+        sequence_id=f"{symbol.upper()}:{day.isoformat()}:instrument_assumption",
+        payload=Instrument(
+            exchange=exchange,
+            market_type=market_type,
+            symbol=normalized.symbol,
+            base_asset=normalized.base_asset,
+            quote_asset=normalized.quote_asset,
+            price_precision=price_precision,
+            qty_precision=qty_precision,
+            contract_size=contract_size,
+            raw=raw,
+        ),
+    )
+    return DataLakeWriter(data_lake_root).write_events([event])
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Strategy Miner collector 工具")
     parser.add_argument(
@@ -298,6 +353,7 @@ def main(argv: list[str] | None = None) -> int:
             "open-interest",
             "funding",
             "fee-assumption",
+            "instrument-assumption",
             "orderbook-snapshot",
             "instrument-snapshot",
             "show-ws",
@@ -314,6 +370,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--maker-bps", default="10")
     parser.add_argument("--taker-bps", default="10")
     parser.add_argument("--fee-tier", default="manual_assumption")
+    parser.add_argument("--price-precision", type=int)
+    parser.add_argument("--qty-precision", type=int)
+    parser.add_argument("--contract-size")
+    parser.add_argument("--evidence-hash", default="")
+    parser.add_argument("--evidence-source", default="")
+    parser.add_argument("--assumption-note", default="")
+    parser.add_argument("--reviewed-by", default="")
     args = parser.parse_args(argv)
 
     exchange = Exchange(args.exchange)
@@ -379,6 +442,25 @@ def main(argv: list[str] | None = None) -> int:
             symbol=args.symbol,
             data_lake_root=Path(args.data_lake_root),
             limit=depth_limit,
+        )
+        for path in written:
+            print(path)
+        return 0
+
+    if args.command == "instrument-assumption":
+        written = ingest_instrument_assumption(
+            exchange=exchange,
+            market_type=market_type,
+            symbol=args.symbol,
+            day=date.fromisoformat(args.day),
+            data_lake_root=Path(args.data_lake_root),
+            price_precision=args.price_precision,
+            qty_precision=args.qty_precision,
+            contract_size=args.contract_size,
+            evidence_hash=args.evidence_hash,
+            evidence_source=args.evidence_source,
+            assumption_note=args.assumption_note,
+            reviewed_by=args.reviewed_by,
         )
         for path in written:
             print(path)

@@ -108,6 +108,53 @@ def test_ingest_fee_assumption_writes_data_lake_partition(tmp_path) -> None:
     assert "conservative_manual" in content
 
 
+def test_ingest_instrument_assumption_writes_data_lake_partition(tmp_path) -> None:
+    written = collector_main.ingest_instrument_assumption(
+        exchange=Exchange.BINANCE,
+        market_type=MarketType.PERP,
+        symbol="BTCUSDT",
+        day=date(2026, 6, 8),
+        data_lake_root=tmp_path,
+        price_precision=2,
+        qty_precision=3,
+        contract_size="1",
+        evidence_hash="sha256:abc123",
+        evidence_source="manual-review://exchangeInfo/2026-06-09",
+        assumption_note="Reviewer confirmed static metadata for adjacent replay date.",
+        reviewed_by="codex-test",
+    )
+
+    assert len(written) == 1
+    assert written[0].exists()
+    assert "exchange=binance" in written[0].parts
+    assert "date=2026-06-08" in written[0].parts
+    assert "market_type=perp" in written[0].parts
+    assert "symbol=BTC-USDT" in written[0].parts
+    assert "event_type=instrument" in written[0].parts
+    content = written[0].read_text(encoding="utf-8")
+    assert "manual_instrument_metadata_assumption" in content
+    assert "sha256:abc123" in content
+    assert "not official historical exchangeInfo" in content
+
+
+def test_ingest_instrument_assumption_requires_evidence_hash(tmp_path) -> None:
+    with pytest.raises(ValueError, match="evidence-hash"):
+        collector_main.ingest_instrument_assumption(
+            exchange=Exchange.BINANCE,
+            market_type=MarketType.PERP,
+            symbol="BTCUSDT",
+            day=date(2026, 6, 8),
+            data_lake_root=tmp_path,
+            price_precision=2,
+            qty_precision=3,
+            contract_size="1",
+            evidence_hash="",
+            evidence_source="manual-review://exchangeInfo/2026-06-09",
+            assumption_note="Reviewer confirmed static metadata.",
+            reviewed_by="codex-test",
+        )
+
+
 def test_ingest_historical_mark_writes_data_lake_partition(tmp_path, monkeypatch) -> None:
     def fake_download_file(file, target_dir):
         assert file.request.event_type.value == "mark"
