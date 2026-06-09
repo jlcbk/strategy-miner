@@ -140,3 +140,51 @@ def test_binance_open_interest_history_parser_normalizes_events() -> None:
         "unit": "contracts",
         "interval": "5m",
     }
+
+
+def test_binance_funding_rate_history_endpoint_uses_day_window_params() -> None:
+    endpoint = BinanceConnector().funding_rate_history_endpoint(
+        market_type=MarketType.PERP,
+        symbol="BTC-USDT",
+        start_ts=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        end_ts=datetime(2024, 1, 2, tzinfo=timezone.utc),
+        limit=1000,
+    )
+
+    assert endpoint.url == "https://fapi.binance.com/fapi/v1/fundingRate"
+    assert endpoint.params == {
+        "symbol": "BTCUSDT",
+        "startTime": "1704067200000",
+        "endTime": "1704153600000",
+        "limit": "1000",
+    }
+
+
+def test_binance_funding_rate_history_parser_normalizes_events() -> None:
+    events = BinanceConnector().parse_funding_rate_history(
+        market_type=MarketType.PERP,
+        symbol="BTCUSDT",
+        rows=[
+            {
+                "symbol": "BTCUSDT",
+                "fundingRate": "0.00010000",
+                "fundingTime": 1704067200000,
+                "markPrice": "42283.58",
+            },
+            {"symbol": "BTCUSDT", "fundingTime": 1704096000000},
+        ],
+    )
+
+    assert len(events) == 1
+    event = events[0]
+    assert event.exchange == Exchange.BINANCE
+    assert event.market_type == MarketType.PERP
+    assert event.symbol == "BTC-USDT"
+    assert event.event_type == EventType.FUNDING
+    assert event.partition_date == "2024-01-01"
+    assert event.sequence_id == "BTCUSDT:1704067200000"
+    assert event.payload == {
+        "rate": "0.00010000",
+        "next_funding_ts": None,
+        "interval_hours": "8",
+    }

@@ -13,6 +13,7 @@ from packages.connectors.base import (
 from packages.normalization.models import (
     EventType,
     Exchange,
+    FundingPayload,
     MarketEvent,
     MarketType,
     OpenInterestPayload,
@@ -175,6 +176,64 @@ class BinanceConnector:
                         open_interest_value_usd=open_interest_value,
                         unit="contracts",
                         interval=interval,
+                    ),
+                )
+            )
+        return events
+
+    def funding_rate_history_endpoint(
+        self,
+        *,
+        market_type: MarketType,
+        symbol: str,
+        start_ts,
+        end_ts,
+        limit: int = 1000,
+    ) -> RestMarketDataEndpoint:
+        if market_type not in {MarketType.PERP, MarketType.FUTURE}:
+            raise NotImplementedError("Binance funding rate 历史序列只适用于衍生品市场")
+        clean_symbol = symbol.replace("-", "").upper()
+        return RestMarketDataEndpoint(
+            url="https://fapi.binance.com/fapi/v1/fundingRate",
+            params={
+                "symbol": clean_symbol,
+                "startTime": str(_to_millis(start_ts)),
+                "endTime": str(_to_millis(end_ts)),
+                "limit": str(limit),
+            },
+            notes="USD-M futures funding rate history",
+        )
+
+    def parse_funding_rate_history(
+        self,
+        *,
+        market_type: MarketType,
+        symbol: str,
+        rows: list[dict],
+        interval_hours: str = "8",
+    ) -> list[MarketEvent]:
+        normalized = normalize_symbol(self.exchange, symbol, market_type)
+        events: list[MarketEvent] = []
+        for row in rows:
+            timestamp = row.get("fundingTime")
+            rate = row.get("fundingRate")
+            if timestamp is None or rate is None:
+                continue
+            events.append(
+                MarketEvent(
+                    exchange=self.exchange,
+                    market_type=market_type,
+                    symbol=normalized.symbol,
+                    base_asset=normalized.base_asset,
+                    quote_asset=normalized.quote_asset,
+                    event_type=EventType.FUNDING,
+                    exchange_ts=timestamp,
+                    local_ts=utc_now(),
+                    source="binance_funding_rate_history",
+                    sequence_id=f"{symbol.upper()}:{timestamp}",
+                    payload=FundingPayload(
+                        rate=rate,
+                        interval_hours=interval_hours,
                     ),
                 )
             )

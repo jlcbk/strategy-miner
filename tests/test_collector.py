@@ -49,3 +49,34 @@ def test_ingest_open_interest_rejects_stale_binance_history_window(tmp_path) -> 
             day=date(2024, 1, 1),
             data_lake_root=tmp_path,
         )
+
+
+def test_ingest_funding_writes_data_lake_partition(tmp_path, monkeypatch) -> None:
+    def fake_download_json(endpoint):
+        assert endpoint.params["symbol"] == "BTCUSDT"
+        return [
+            {
+                "symbol": "BTCUSDT",
+                "fundingRate": "0.00010000",
+                "fundingTime": 1704067200000,
+                "markPrice": "42283.58",
+            }
+        ]
+
+    monkeypatch.setattr(collector_main, "download_json", fake_download_json)
+
+    written = collector_main.ingest_funding(
+        exchange=Exchange.BINANCE,
+        market_type=MarketType.PERP,
+        symbol="BTCUSDT",
+        day=date(2024, 1, 1),
+        data_lake_root=tmp_path,
+    )
+
+    assert len(written) == 1
+    assert written[0].exists()
+    assert "exchange=binance" in written[0].parts
+    assert "date=2024-01-01" in written[0].parts
+    assert "market_type=perp" in written[0].parts
+    assert "symbol=BTC-USDT" in written[0].parts
+    assert "event_type=funding" in written[0].parts

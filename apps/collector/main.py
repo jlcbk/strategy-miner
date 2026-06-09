@@ -60,8 +60,7 @@ def ingest_open_interest(
                 "更早窗口需要外部归档源或调整验证日期"
             )
     connector = BinanceConnector()
-    start_ts = datetime.combine(day, time.min, tzinfo=timezone.utc)
-    end_ts = datetime.combine(day, time.max, tzinfo=timezone.utc)
+    start_ts, end_ts = _day_window(day)
     endpoint = connector.open_interest_history_endpoint(
         market_type=market_type,
         symbol=symbol,
@@ -80,9 +79,41 @@ def ingest_open_interest(
     return DataLakeWriter(data_lake_root).write_events(events)
 
 
+def ingest_funding(
+    *,
+    exchange: Exchange,
+    market_type: MarketType,
+    symbol: str,
+    day: date,
+    data_lake_root: Path,
+    limit: int = 1000,
+) -> list[Path]:
+    if exchange != Exchange.BINANCE:
+        raise NotImplementedError("funding collector 当前先支持 Binance")
+    connector = BinanceConnector()
+    start_ts, end_ts = _day_window(day)
+    endpoint = connector.funding_rate_history_endpoint(
+        market_type=market_type,
+        symbol=symbol,
+        start_ts=start_ts,
+        end_ts=end_ts,
+        limit=limit,
+    )
+    rows = download_json(endpoint)
+    events = connector.parse_funding_rate_history(
+        market_type=market_type,
+        symbol=symbol,
+        rows=rows,
+    )
+    return DataLakeWriter(data_lake_root).write_events(events)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Strategy Miner collector 工具")
-    parser.add_argument("command", choices=["historical-trades", "open-interest", "show-ws"])
+    parser.add_argument(
+        "command",
+        choices=["historical-trades", "open-interest", "funding", "show-ws"],
+    )
     parser.add_argument("--exchange", choices=["binance", "bybit"], default="binance")
     parser.add_argument("--market-type", choices=["spot", "perp", "future"], default="spot")
     parser.add_argument("--symbol", default="BTCUSDT")
@@ -120,6 +151,19 @@ def main(argv: list[str] | None = None) -> int:
             print(path)
         return 0
 
+    if args.command == "funding":
+        written = ingest_funding(
+            exchange=exchange,
+            market_type=market_type,
+            symbol=args.symbol,
+            day=date.fromisoformat(args.day),
+            data_lake_root=Path(args.data_lake_root),
+            limit=args.limit,
+        )
+        for path in written:
+            print(path)
+        return 0
+
     written = ingest_historical_trades(
         exchange=exchange,
         market_type=market_type,
@@ -131,6 +175,13 @@ def main(argv: list[str] | None = None) -> int:
     for path in written:
         print(path)
     return 0
+
+
+def _day_window(day: date) -> tuple[datetime, datetime]:
+    return (
+        datetime.combine(day, time.min, tzinfo=timezone.utc),
+        datetime.combine(day, time.max, tzinfo=timezone.utc),
+    )
 
 
 if __name__ == "__main__":
