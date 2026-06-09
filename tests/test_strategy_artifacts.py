@@ -56,10 +56,15 @@ def test_cross_exchange_funding_artifacts_match_supported_schema_fields() -> Non
 
 def test_funding_carry_artifacts_are_machine_readable() -> None:
     report, proposal = _read_artifacts("funding_carry_vol_filter")
+    opportunity_report = _read_json(
+        ARTIFACT_ROOTS["funding_carry_vol_filter"] / "opportunity_report.json"
+    )
 
     assert report["kind"] == "research_report"
     assert proposal["kind"] == "strategy_proposal"
+    assert opportunity_report["kind"] == "opportunity_report"
     assert proposal["strategy_name"] == "funding_carry_vol_filter"
+    assert opportunity_report["strategy_name"] == "funding_carry_vol_filter"
     assert proposal["data_requirements"] == report["required_data"]
     assert "funding" in proposal["data_requirements"]
     assert "mark_index_price" in proposal["data_requirements"]
@@ -68,6 +73,33 @@ def test_funding_carry_artifacts_are_machine_readable() -> None:
     assert "instrument_metadata" in proposal["data_requirements"]
     assert any("Operator fit" in note for note in report["evidence_notes"])
     assert any("Fee boundary" in note for note in report["evidence_notes"])
+    assert "deterministic fixture" in opportunity_report["title"]
+    assert opportunity_report["opportunity_count"] == 1
+    assert opportunity_report["opportunities"][0]["failure_modes"] == []
+    assert opportunity_report["opportunities"][0]["metadata"]["recent_price_move_source"] == "trade"
+    assert (
+        "artifacts/strategies/funding_carry_vol_filter/opportunity_report.json"
+        in proposal["candidate_files"]
+    )
+
+
+def test_funding_carry_opportunity_report_matches_supported_schema_fields() -> None:
+    opportunity_report = _read_json(
+        ARTIFACT_ROOTS["funding_carry_vol_filter"] / "opportunity_report.json"
+    )
+
+    assert set(opportunity_report) == {
+        "kind",
+        "title",
+        "created_by",
+        "created_at",
+        "strategy_name",
+        "strategy_version",
+        "data_window",
+        "opportunity_count",
+        "opportunities",
+        "result_hash",
+    }
 
 
 def _read_artifacts(strategy_name: str) -> tuple[dict, dict]:

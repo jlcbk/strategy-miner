@@ -346,3 +346,24 @@
 ### 状态结论
 
 #1 现在已有机器可读 artifact、最小 evaluator、trade-derived 波动过滤和最小 replay fixture。它仍不能标记为验证通过，因为该 fixture 是确定性单元样本，不是真实历史 data lake 覆盖；真实验证仍需补齐目标窗口的 funding、mark/index、trade、fee 和 instrument 分区。
+
+## 2026-06-09：#1 Funding carry fixture opportunity report
+
+本轮将 #1 的最小 replay 输出沉淀为机器可读 `opportunity_report` fixture artifact：
+
+- `artifacts/strategies/funding_carry_vol_filter/opportunity_report.json`
+
+### report 内容
+
+- `kind`：`opportunity_report`
+- `strategy_name`：`funding_carry_vol_filter`
+- `strategy_version`：`0.1.0`
+- `opportunity_count`：`1`
+- `result_hash`：基于最小 replay result 的稳定 sha256。
+- 输出双腿：`spot buy` + `perp sell`。
+- `recent_price_move_source`：`trade`。
+- `failure_modes`：空。
+
+### 边界
+
+该 report 标题明确为 deterministic fixture opportunity report。它用于验证 artifact/schema/replay 链路，不代表真实历史回放通过，也不应触发 `strategy:validation-ready` 状态变更。#1 继续保持 `strategy:blocked-data`，直到真实 data lake 覆盖目标窗口。

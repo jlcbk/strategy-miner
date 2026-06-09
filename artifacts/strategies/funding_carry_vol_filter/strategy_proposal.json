@@ -63,6 +63,7 @@
   "candidate_files": [
     "artifacts/strategies/funding_carry_vol_filter/research_report.json",
     "artifacts/strategies/funding_carry_vol_filter/strategy_proposal.json",
+    "artifacts/strategies/funding_carry_vol_filter/opportunity_report.json",
     "packages/strategies/funding_carry.py"
   ]
 }
