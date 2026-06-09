@@ -1,0 +1,67 @@
+{
+  "kind": "strategy_proposal",
+  "title": "Quarterly futures basis convergence",
+  "created_by": "codex",
+  "created_at": "2026-06-09T00:00:00+00:00",
+  "strategy_name": "quarterly_basis_convergence",
+  "hypothesis": "当 BTC 或 ETH 的 dated futures 相对 spot 或 perpetual 出现足够高的年化 basis，且距离到期仍有足够时间、流动性和保证金缓冲时，做低价腿多头和高价 futures 空头的 carry 组合，可能获得适合人工确认和离线回放验证的 basis 收敛收益。",
+  "evaluator_contract": {
+    "inputs": [
+      "future mark prices with expiry metadata",
+      "spot candles or trade-derived bars for spot reference price",
+      "perp candles or marks for alternate hedge/reference checks",
+      "instrument metadata including expiry, contract size and settlement rules",
+      "fee schedule and depth/volume capacity proxy"
+    ],
+    "outputs": [
+      "symbol",
+      "future contract or expiry bucket",
+      "annualized basis",
+      "estimated net edge after fees and slippage",
+      "days to expiry",
+      "capacity and liquidity flags"
+    ],
+    "entry_rules": [
+      "annualized_basis exceeds min_edge_threshold after fees, slippage and buffer",
+      "days_to_expiry is inside configured window such as 7 to 60 days",
+      "future and spot reference prices are fresh and aligned",
+      "depth_volume supports target notional without high leverage",
+      "instrument metadata confirms expiry, contract size and settlement assumptions"
+    ],
+    "exit_rules": [
+      "annualized_basis falls below exit threshold",
+      "days_to_expiry reaches forced exit window",
+      "liquidity drops below target notional threshold",
+      "basis expands beyond margin stress threshold",
+      "manual review rejects current exchange or contract constraints"
+    ]
+  },
+  "data_requirements": [
+    "future_mark_price",
+    "spot_candles",
+    "perp_candles",
+    "instrument_metadata",
+    "fees",
+    "depth_volume"
+  ],
+  "test_plan": [
+    "先用 Binance 或 OKX 的 BTC/ETH dated futures 与 spot reference price 做最小 fixture。",
+    "按 expiry bucket 计算 basis_bps 和 annualized_basis，并测试 7 到 60 天到期窗口。",
+    "使用 fee-assumption 作为保守扣费下限，同时在人工审核前替换为真实交易所或账户费率。",
+    "用 depth_volume 过滤无法支持目标 notional 的合约窗口。",
+    "比较持有到期、到期前固定天数退出和 basis 收敛退出三种规则。",
+    "跨不同到期月和不同市场状态检查阈值稳定性，避免只拟合单一 contango 高峰。"
+  ],
+  "risk_controls": [
+    "不使用高杠杆；要求保证金缓冲覆盖 basis 继续扩大和短期浮亏。",
+    "过滤到期日前流动性快速下降、盘口深度不足或交易规则不明的合约。",
+    "限制单交易所、单标的和单到期月名义敞口。",
+    "必须确认合约 expiry、contract size、settlement 和手续费口径。",
+    "只允许离线研究、告警和人工确认；不标记为 production-ready，不触发真实交易。"
+  ],
+  "candidate_files": [
+    "artifacts/strategies/quarterly_basis_convergence/research_report.json",
+    "artifacts/strategies/quarterly_basis_convergence/strategy_proposal.json",
+    "packages/strategies/basis.py"
+  ]
+}

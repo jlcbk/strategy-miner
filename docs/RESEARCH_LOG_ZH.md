@@ -367,3 +367,32 @@
 ### 边界
 
 该 report 标题明确为 deterministic fixture opportunity report。它用于验证 artifact/schema/replay 链路，不代表真实历史回放通过，也不应触发 `strategy:validation-ready` 状态变更。#1 继续保持 `strategy:blocked-data`，直到真实 data lake 覆盖目标窗口。
+
+## 2026-06-09：#2 Quarterly basis artifact 化
+
+本轮将 [#2](https://github.com/jlcbk/strategy-miner/issues/2) 从 Issue 文本整理为机器可读 artifact：
+
+- `artifacts/strategies/quarterly_basis_convergence/research_report.json`
+- `artifacts/strategies/quarterly_basis_convergence/strategy_proposal.json`
+
+### 操作适配判断
+
+- 资金规模：适合小到中等资金先做模拟和告警。
+- 持仓周期：日级到周级，小时级扫描。
+- 自动化要求：允许离线扫描和人工确认，不进入无人值守执行。
+- 执行假设：低价腿多头 + 高价 dated futures 空头，限制单交易所、单标的和单到期月名义敞口。
+- 主要风险：basis 继续扩大、到期前流动性下降、合约规格解析错误、保证金压力和滑点吞噬收益。
+
+### 工具验证结果
+
+- `rank_strategy_candidates` total_score：`85.00`。
+- 推荐状态：`queued_for_validation`。
+- `plan_strategy_validation` readiness：`ready_for_fixture`。
+- `check_data_coverage` 范围：Binance，BTCUSDT / ETHUSDT，spot + perp + future，2026-06-08。
+- 覆盖率：`0.03`，`covered_count=1`，`required_count=30`。
+- `generate_data_collection_jobs` 生成 25 个物理补数 job。
+- `plan_data_collection_commands`：13 个 supported，12 个 blocked；blocked 原因为历史 `instrument` 和 `orderbook` 分区不能由当前 snapshot collector 回补。
+
+### 状态结论
+
+#2 仍是贴近 operator profile 的高优先级候选：不依赖极低延迟，适合半自动扫描和人工确认。但它继续保持 `strategy:blocked-data`，因为真实验证需要 dated futures 的 future mark、spot/perp trade-derived candle、instrument metadata、fees 和 depth_volume 分区。

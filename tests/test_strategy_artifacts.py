@@ -7,6 +7,7 @@ ARTIFACT_ROOTS = {
         "artifacts/strategies/cross_exchange_funding_dispersion"
     ),
     "funding_carry_vol_filter": Path("artifacts/strategies/funding_carry_vol_filter"),
+    "quarterly_basis_convergence": Path("artifacts/strategies/quarterly_basis_convergence"),
 }
 
 
@@ -100,6 +101,21 @@ def test_funding_carry_opportunity_report_matches_supported_schema_fields() -> N
         "opportunities",
         "result_hash",
     }
+
+
+def test_quarterly_basis_artifacts_are_machine_readable() -> None:
+    report, proposal = _read_artifacts("quarterly_basis_convergence")
+
+    assert report["kind"] == "research_report"
+    assert proposal["kind"] == "strategy_proposal"
+    assert proposal["strategy_name"] == "quarterly_basis_convergence"
+    assert proposal["data_requirements"] == report["required_data"]
+    assert "future_mark_price" in proposal["data_requirements"]
+    assert "spot_candles" in proposal["data_requirements"]
+    assert "instrument_metadata" in proposal["data_requirements"]
+    assert "depth_volume" in proposal["data_requirements"]
+    assert any("Operator fit" in note for note in report["evidence_notes"])
+    assert any("Instrument boundary" in note for note in report["evidence_notes"])
 
 
 def _read_artifacts(strategy_name: str) -> tuple[dict, dict]:

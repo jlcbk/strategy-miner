@@ -1,0 +1,57 @@
+{
+  "kind": "research_report",
+  "title": "Quarterly futures basis convergence research report",
+  "created_by": "codex",
+  "created_at": "2026-06-09T00:00:00+00:00",
+  "summary": "当 dated futures 相对 spot 或 perpetual 出现足够高的年化 basis，且距离到期仍处于可交易窗口时，cash-and-carry 或 spot/future basis 组合可能形成可复验候选。按当前 operator profile，该方向适合离线扫描、人工确认和日级到周级持仓，不依赖极低延迟，但必须处理合约到期、保证金缓冲、流动性下降和交易规则差异。",
+  "source_urls": [
+    "https://www.bis.org/publ/work1087.pdf",
+    "https://messari.io/copilot/share/understanding-basis-trading-fe788635-5ecd-4f72-98e7-f7a171abd912",
+    "https://www.cfbenchmarks.com/blog/revisiting-the-bitcoin-basis-how-momentum-sentiment-impact-the-structural-drivers-of-basis-activity",
+    "https://bsic.it/carry-trading-dynamics-in-cryptocurrency-markets/"
+  ],
+  "claims": [
+    "Dated futures 在 contango 环境下相对 spot 的溢价可能提供 cash-and-carry 候选，理论收敛路径来自到期交割或到期前 basis 收敛。",
+    "Basis trade 的核心不是预测方向，而是验证 future premium 在扣除手续费、滑点、保证金占用和库存成本后是否仍有净 edge。",
+    "该方向的持仓周期通常为日级到周级，比盘口短周期策略更符合人工确认和半自动执行。",
+    "主要限制来自合约深度、到期前流动性下降、basis 继续扩大造成浮亏、以及不同交易所合约规格和结算规则差异。",
+    "早期应优先 BTC 和 ETH，优先只做观察、fixture 和历史回放，不进入实盘或高杠杆执行。"
+  ],
+  "formulas": [
+    "basis = future_price / spot_price - 1",
+    "annualized_basis = basis * 365 / days_to_expiry",
+    "expected_edge = future_premium - maker_taker_fees - slippage - borrow_or_inventory_cost - margin_buffer_cost",
+    "basis_bps = (future_price - spot_price) / spot_price * 10000",
+    "exit_condition = annualized_basis <= exit_threshold or days_to_expiry <= forced_exit_days"
+  ],
+  "cost_items": [
+    "spot 和 future 双腿 maker/taker 手续费",
+    "交割合约盘口深度不足带来的滑点和冲击成本",
+    "保证金占用和资金机会成本",
+    "现货库存、借贷或资金调拨成本",
+    "到期前换仓、提前退出或强制减仓成本"
+  ],
+  "failure_modes": [
+    "Basis 在入场后继续扩大，导致组合出现浮亏和保证金压力。",
+    "到期日前 future 流动性下降，平仓滑点吞噬预期 carry。",
+    "合约规格、乘数、到期日或结算规则解析错误，导致回放和执行口径错配。",
+    "低流动性合约表面 annualized basis 很高，但真实可成交容量不足。",
+    "费用等级、保证金模式或借贷成本假设错误，导致净 edge 被高估。",
+    "如果依赖高杠杆或持续人工盯盘，则不符合当前 operator profile 的早期优先级。"
+  ],
+  "required_data": [
+    "future_mark_price",
+    "spot_candles",
+    "perp_candles",
+    "instrument_metadata",
+    "fees",
+    "depth_volume"
+  ],
+  "evidence_notes": [
+    "Operator fit: 适合小时级监控、日级到周级持仓、离线扫描和人工确认；不需要极低延迟竞争。",
+    "Execution assumption: 早期只允许观察、fixture 和回放；不生成实盘配置，不触发真实交易。",
+    "Data status: future mark、spot/perp candle source、instrument metadata、fees 和 depth_volume 都需要 data lake 覆盖后才能做真实回放。",
+    "Instrument boundary: dated futures 必须明确 expiry、contract size、symbol mapping 和结算规则；当前 instrument-snapshot 不能证明历史交易规则。",
+    "Priority: 该方向仍是高优先级候选，但当前主要阻塞是真实 futures 数据和合约 metadata 覆盖。"
+  ]
+}
