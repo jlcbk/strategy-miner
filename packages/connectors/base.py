@@ -3,11 +3,13 @@ from __future__ import annotations
 import csv
 import gzip
 import io
+import json
 import zipfile
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 from typing import Iterable, Protocol
+from urllib.parse import urlencode
 from urllib.request import urlopen
 
 from packages.normalization.models import EventType, Exchange, MarketEvent, MarketType
@@ -82,6 +84,14 @@ def download_file(file: HistoricalFile, target_dir: str | Path) -> Path:
     with urlopen(file.url, timeout=30) as response:
         output.write_bytes(response.read())
     return output
+
+
+def download_json(endpoint: RestMarketDataEndpoint):
+    url = endpoint.url
+    if endpoint.params:
+        url = f"{url}?{urlencode(endpoint.params)}"
+    with urlopen(url, timeout=30) as response:
+        return json.loads(response.read().decode("utf-8"))
 
 
 def csv_rows_from_archive(raw: bytes, compression: str) -> list[dict[str, str]]:

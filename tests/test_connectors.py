@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timezone
 
 from packages.connectors.base import HistoricalDataRequest
 from packages.connectors.binance import BinanceConnector
@@ -88,3 +88,55 @@ def test_open_interest_rest_endpoints_cover_core_derivatives_exchanges() -> None
         symbol="BTCUSDT",
     )
     assert bitget.params == {"symbol": "BTCUSDT", "productType": "USDT-FUTURES"}
+
+
+def test_binance_open_interest_history_endpoint_uses_day_window_params() -> None:
+    endpoint = BinanceConnector().open_interest_history_endpoint(
+        market_type=MarketType.PERP,
+        symbol="BTC-USDT",
+        start_ts=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        end_ts=datetime(2024, 1, 2, tzinfo=timezone.utc),
+        interval="5m",
+        limit=288,
+    )
+
+    assert endpoint.url == "https://fapi.binance.com/futures/data/openInterestHist"
+    assert endpoint.params == {
+        "symbol": "BTCUSDT",
+        "period": "5m",
+        "startTime": "1704067200000",
+        "endTime": "1704153600000",
+        "limit": "288",
+    }
+
+
+def test_binance_open_interest_history_parser_normalizes_events() -> None:
+    events = BinanceConnector().parse_open_interest_history(
+        market_type=MarketType.PERP,
+        symbol="BTCUSDT",
+        interval="5m",
+        rows=[
+            {
+                "symbol": "BTCUSDT",
+                "sumOpenInterest": "20403.123",
+                "sumOpenInterestValue": "884000000.5",
+                "timestamp": 1704067200000,
+            },
+            {"symbol": "BTCUSDT", "timestamp": 1704067500000},
+        ],
+    )
+
+    assert len(events) == 1
+    event = events[0]
+    assert event.exchange == Exchange.BINANCE
+    assert event.market_type == MarketType.PERP
+    assert event.symbol == "BTC-USDT"
+    assert event.event_type == EventType.OPEN_INTEREST
+    assert event.partition_date == "2024-01-01"
+    assert event.sequence_id == "BTCUSDT:1704067200000"
+    assert event.payload == {
+        "open_interest": "20403.123",
+        "open_interest_value_usd": "884000000.5",
+        "unit": "contracts",
+        "interval": "5m",
+    }
