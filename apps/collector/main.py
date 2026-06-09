@@ -88,6 +88,38 @@ def ingest_historical_mark(
     return DataLakeWriter(data_lake_root).write_events(events)
 
 
+def ingest_historical_index(
+    *,
+    exchange: Exchange,
+    market_type: MarketType,
+    symbol: str,
+    day: date,
+    data_lake_root: Path,
+    interval: str = "1m",
+    limit: int = 1500,
+) -> list[Path]:
+    if exchange != Exchange.BINANCE:
+        raise NotImplementedError("historical-index collector 当前仅支持 Binance")
+    connector = CONNECTORS[exchange]
+    start_ts, end_ts = _day_window(day)
+    endpoint = connector.index_price_kline_endpoint(
+        market_type=market_type,
+        symbol=symbol,
+        start_ts=start_ts,
+        end_ts=end_ts,
+        interval=interval,
+        limit=limit,
+    )
+    rows = download_json(endpoint)
+    events = connector.parse_index_price_klines(
+        market_type=market_type,
+        symbol=symbol,
+        rows=rows,
+        interval=interval,
+    )
+    return DataLakeWriter(data_lake_root).write_events(events)
+
+
 def ingest_open_interest(
     *,
     exchange: Exchange,
@@ -222,6 +254,7 @@ def main(argv: list[str] | None = None) -> int:
         choices=[
             "historical-trades",
             "historical-mark",
+            "historical-index",
             "open-interest",
             "funding",
             "orderbook-snapshot",
@@ -311,6 +344,22 @@ def main(argv: list[str] | None = None) -> int:
             day=date.fromisoformat(args.day),
             download_dir=Path(args.download_dir),
             data_lake_root=Path(args.data_lake_root),
+        )
+        for path in written:
+            print(path)
+        return 0
+
+    if args.command == "historical-index":
+        index_interval = "1m" if args.interval == "5m" else args.interval
+        index_limit = 1500 if args.limit == 500 else args.limit
+        written = ingest_historical_index(
+            exchange=exchange,
+            market_type=market_type,
+            symbol=args.symbol,
+            day=date.fromisoformat(args.day),
+            data_lake_root=Path(args.data_lake_root),
+            interval=index_interval,
+            limit=index_limit,
         )
         for path in written:
             print(path)

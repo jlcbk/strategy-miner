@@ -116,6 +116,30 @@ def test_ingest_historical_mark_writes_data_lake_partition(tmp_path, monkeypatch
     assert "event_type=mark" in written[0].parts
 
 
+def test_ingest_historical_index_writes_data_lake_partition(tmp_path, monkeypatch) -> None:
+    def fake_download_json(endpoint):
+        assert endpoint.url == "https://fapi.binance.com/fapi/v1/indexPriceKlines"
+        assert endpoint.params["pair"] == "BTCUSDT"
+        return [[1704067200000, "42000.1", "42100.2", "41900.3", "42050.4"]]
+
+    monkeypatch.setattr(collector_main, "download_json", fake_download_json)
+
+    written = collector_main.ingest_historical_index(
+        exchange=Exchange.BINANCE,
+        market_type=MarketType.PERP,
+        symbol="BTCUSDT",
+        day=date(2024, 1, 1),
+        data_lake_root=tmp_path,
+    )
+
+    assert len(written) == 1
+    assert "exchange=binance" in written[0].parts
+    assert "date=2024-01-01" in written[0].parts
+    assert "market_type=perp" in written[0].parts
+    assert "symbol=BTC-USDT" in written[0].parts
+    assert "event_type=index" in written[0].parts
+
+
 def test_ingest_bybit_open_interest_writes_data_lake_partition(tmp_path, monkeypatch) -> None:
     def fake_download_json(endpoint):
         assert endpoint.url == "https://api.bybit.com/v5/market/open-interest"

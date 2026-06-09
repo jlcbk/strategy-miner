@@ -196,3 +196,23 @@
 ### 对策略状态的影响
 
 #1、#2、#4 的 `instrument_metadata` collector 阻塞被部分解除：可以从当前时间开始采集 Binance 交易规则快照。相关策略仍保持 `strategy:blocked-data`，因为历史验证窗口还缺 fee、index、trade、mark、orderbook 等分区。
+
+## 2026-06-09：Binance index price collector
+
+本轮新增 Binance USD-M Futures index price kline collector，用于补齐 `mark_index_price` 中的 `index` 分区。
+
+### 能力边界
+
+- 新命令：`python3 -m apps.collector.main historical-index --exchange binance --market-type perp --symbol BTCUSDT --day 2026-06-08 --data-lake-root .data/lake`
+- REST 使用 `https://fapi.binance.com/fapi/v1/indexPriceKlines`。
+- 默认 interval 为 `1m`，按单日窗口采集。
+- 写入统一 `EventType.INDEX` 分区，payload 包含 `index_price` 和 `interval`。
+
+### 工具状态变化
+
+- `plan_data_collection_commands` 对 Binance `index` job 输出 `historical-index` 命令。
+- 风险等级为 `medium`，和 1m `mark` 类似。
+
+### 对策略状态的影响
+
+#4 的 `mark_index_price` collector 阻塞被部分解除：Binance `mark` 和 `index` 都已有采集入口。#4 仍保持 `strategy:blocked-data`，因为目标窗口还缺 fee、trade、orderbook 等分区，并且本机访问 Binance REST 仍受限。

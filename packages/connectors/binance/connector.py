@@ -109,6 +109,66 @@ class BinanceConnector:
             )
         return events
 
+    def index_price_kline_endpoint(
+        self,
+        *,
+        market_type: MarketType,
+        symbol: str,
+        start_ts,
+        end_ts,
+        interval: str = "1m",
+        limit: int = 1500,
+    ) -> RestMarketDataEndpoint:
+        if market_type not in {MarketType.PERP, MarketType.FUTURE}:
+            raise NotImplementedError("Binance index price kline 只适用于衍生品市场")
+        pair = symbol.replace("-", "").upper()
+        return RestMarketDataEndpoint(
+            url="https://fapi.binance.com/fapi/v1/indexPriceKlines",
+            params={
+                "pair": pair,
+                "interval": interval,
+                "startTime": str(_to_millis(start_ts)),
+                "endTime": str(_to_millis(end_ts)),
+                "limit": str(limit),
+            },
+            notes="USD-M futures index price klines",
+        )
+
+    def parse_index_price_klines(
+        self,
+        *,
+        market_type: MarketType,
+        symbol: str,
+        rows: list[list],
+        interval: str = "1m",
+    ) -> list[MarketEvent]:
+        normalized = normalize_symbol(self.exchange, symbol, market_type)
+        events: list[MarketEvent] = []
+        for row in rows:
+            if len(row) < 5:
+                continue
+            open_time = row[0]
+            close = row[4]
+            events.append(
+                MarketEvent(
+                    exchange=self.exchange,
+                    market_type=market_type,
+                    symbol=normalized.symbol,
+                    base_asset=normalized.base_asset,
+                    quote_asset=normalized.quote_asset,
+                    event_type=EventType.INDEX,
+                    exchange_ts=open_time,
+                    local_ts=utc_now(),
+                    source="binance_index_price_klines",
+                    sequence_id=f"{symbol.upper()}:{open_time}",
+                    payload={
+                        "index_price": str(close),
+                        "interval": interval,
+                    },
+                )
+            )
+        return events
+
     def websocket_subscription(
         self,
         *,

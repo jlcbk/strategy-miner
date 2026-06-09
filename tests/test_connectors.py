@@ -382,6 +382,50 @@ def test_binance_mark_price_kline_parser_uses_close_price() -> None:
     }
 
 
+def test_binance_index_price_kline_endpoint_uses_day_window_params() -> None:
+    endpoint = BinanceConnector().index_price_kline_endpoint(
+        market_type=MarketType.PERP,
+        symbol="BTC-USDT",
+        start_ts=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        end_ts=datetime(2024, 1, 2, tzinfo=timezone.utc),
+        interval="1m",
+        limit=1500,
+    )
+
+    assert endpoint.url == "https://fapi.binance.com/fapi/v1/indexPriceKlines"
+    assert endpoint.params == {
+        "pair": "BTCUSDT",
+        "interval": "1m",
+        "startTime": "1704067200000",
+        "endTime": "1704153600000",
+        "limit": "1500",
+    }
+
+
+def test_binance_index_price_kline_parser_uses_close_price() -> None:
+    events = BinanceConnector().parse_index_price_klines(
+        market_type=MarketType.PERP,
+        symbol="BTCUSDT",
+        rows=[
+            [1704067200000, "42000.1", "42100.2", "41900.3", "42050.4"],
+            [1704067260000, "42050.4"],
+        ],
+    )
+
+    assert len(events) == 1
+    event = events[0]
+    assert event.exchange == Exchange.BINANCE
+    assert event.market_type == MarketType.PERP
+    assert event.symbol == "BTC-USDT"
+    assert event.event_type == EventType.INDEX
+    assert event.partition_date == "2024-01-01"
+    assert event.sequence_id == "BTCUSDT:1704067200000"
+    assert event.payload == {
+        "index_price": "42050.4",
+        "interval": "1m",
+    }
+
+
 def test_bybit_mark_price_kline_parser_uses_close_price() -> None:
     events = BybitConnector().parse_mark_price_klines(
         market_type=MarketType.PERP,

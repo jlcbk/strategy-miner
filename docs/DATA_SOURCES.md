@@ -54,6 +54,15 @@ Mark price 用统一 `EventType.MARK` 和 `MarkPricePayload` 表达。当前 col
   - REST 序列已接 `https://api.bybit.com/v5/market/mark-price-kline`
   - 默认使用 5m interval 覆盖单日窗口，作为中风险替代源。
 
+## Index Price
+
+Index price 用统一 `EventType.INDEX` 表达。当前先接入 Binance USD-M Futures REST：
+
+- Binance USD-M Futures：
+  - REST 序列已接 `https://fapi.binance.com/fapi/v1/indexPriceKlines`
+  - 默认使用 1m interval 覆盖单日窗口。
+  - 写入 payload：`index_price` 和 `interval`。
+
 ## Order Book
 
 Order book 用统一 `EventType.ORDERBOOK` 和 `OrderBookPayload` 表达。当前先接入 Binance 当前盘口快照，不做历史回补：

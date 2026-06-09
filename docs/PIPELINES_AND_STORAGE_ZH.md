@@ -137,6 +137,7 @@ python3 -m apps.cli.main run-tool plan_data_collection_commands --payload-json '
 
 - Binance `trade` -> `historical-trades`
 - Binance `mark` -> `historical-mark`
+- Binance `index` -> `historical-index`
 - Binance `funding` -> `funding`
 - Binance `open_interest` -> `open-interest`，但官方历史 REST 只支持最近约 1 个月
 - Binance `orderbook` -> `orderbook-snapshot`，只支持当前盘口快照，不能回补历史分区

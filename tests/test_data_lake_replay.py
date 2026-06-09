@@ -389,6 +389,49 @@ def test_plan_data_collection_commands_supports_current_binance_instrument_snaps
     assert plan.commands[0].execution_group == "metadata_snapshot"
 
 
+def test_plan_data_collection_commands_supports_binance_index_jobs() -> None:
+    plan = plan_data_collection_commands(
+        current_date=datetime(2026, 6, 9, tzinfo=timezone.utc).date(),
+        jobs=[
+            {
+                "id": "index-job",
+                "exchange": "binance",
+                "market_type": "perp",
+                "symbol": "BTCUSDT",
+                "event_type": "index",
+                "start_ts": "2026-06-08T00:00:00+00:00",
+                "end_ts": "2026-06-09T00:00:00+00:00",
+            },
+        ],
+    )
+
+    assert plan.supported_count == 1
+    assert plan.blocked_count == 0
+    assert plan.risk_counts == {"medium": 1}
+    assert plan.commands[0].command == [
+        "python3",
+        "-m",
+        "apps.collector.main",
+        "historical-index",
+        "--exchange",
+        "binance",
+        "--market-type",
+        "perp",
+        "--symbol",
+        "BTCUSDT",
+        "--day",
+        "2026-06-08",
+        "--data-lake-root",
+        ".data/lake",
+        "--interval",
+        "1m",
+        "--limit",
+        "1500",
+    ]
+    assert plan.commands[0].requires_confirmation is False
+    assert plan.commands[0].execution_group == "archive_index"
+
+
 def test_plan_data_collection_commands_blocks_historical_instrument_snapshot() -> None:
     plan = plan_data_collection_commands(
         current_date=datetime(2026, 6, 9, tzinfo=timezone.utc).date(),
