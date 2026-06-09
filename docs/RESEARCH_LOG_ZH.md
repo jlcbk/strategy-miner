@@ -174,3 +174,25 @@
 ### 对策略状态的影响
 
 #4 和 #5 的一个 collector 阻塞被部分解除：可以从当前时间开始采集 Binance top20 orderbook snapshot。它们仍保持 `strategy:blocked-data`，因为目标验证窗口还缺历史 `orderbook`、`trade`、`fee`、`index`、`instrument` 等分区。
+
+## 2026-06-09：Binance instrument snapshot collector
+
+本轮新增 Binance 当前交易规则快照 collector，用于让数据层从现在开始积累 `instrument` 分区。
+
+### 能力边界
+
+- 新命令：`python3 -m apps.collector.main instrument-snapshot --exchange binance --market-type perp --symbol BTCUSDT --data-lake-root .data/lake`
+- Spot 使用 `https://api.binance.com/api/v3/exchangeInfo`。
+- USD-M futures 使用 `https://fapi.binance.com/fapi/v1/exchangeInfo`。
+- 当前写入 symbol、base/quote、价格精度、数量精度、合约面值和原始交易规则。
+- 该命令只采当前交易规则，不能回补历史 `instrument` 分区。
+
+### 工具状态变化
+
+- `plan_data_collection_commands` 对 Binance 当日 `instrument` job 输出 `instrument-snapshot` 命令。
+- 历史日期的 `instrument` job 仍保持 blocked，原因是 snapshot collector 不能证明过去的交易规则。
+- 风险等级为 `low`，因为它是小 REST metadata 请求。
+
+### 对策略状态的影响
+
+#1、#2、#4 的 `instrument_metadata` collector 阻塞被部分解除：可以从当前时间开始采集 Binance 交易规则快照。相关策略仍保持 `strategy:blocked-data`，因为历史验证窗口还缺 fee、index、trade、mark、orderbook 等分区。

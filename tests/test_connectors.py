@@ -234,6 +234,58 @@ def test_binance_orderbook_snapshot_parser_caps_top20_levels() -> None:
     assert event.payload["is_snapshot"] is True
 
 
+def test_binance_instrument_snapshot_endpoint_uses_exchange_info() -> None:
+    spot = BinanceConnector().instrument_snapshot_endpoint(market_type=MarketType.SPOT)
+    perp = BinanceConnector().instrument_snapshot_endpoint(market_type=MarketType.PERP)
+
+    assert spot.url == "https://api.binance.com/api/v3/exchangeInfo"
+    assert spot.params == {}
+    assert perp.url == "https://fapi.binance.com/fapi/v1/exchangeInfo"
+    assert perp.params == {}
+
+
+def test_binance_instrument_snapshot_parser_normalizes_symbol_metadata() -> None:
+    observed_at = datetime(2026, 6, 9, 1, 0, tzinfo=timezone.utc)
+    events = BinanceConnector().parse_instrument_snapshot(
+        market_type=MarketType.PERP,
+        symbol="BTCUSDT",
+        observed_at=observed_at,
+        row={
+            "symbols": [
+                {
+                    "symbol": "ETHUSDT",
+                    "baseAsset": "ETH",
+                    "quoteAsset": "USDT",
+                },
+                {
+                    "symbol": "BTCUSDT",
+                    "baseAsset": "BTC",
+                    "quoteAsset": "USDT",
+                    "pricePrecision": 2,
+                    "quantityPrecision": 3,
+                    "deliveryDate": 4133404800000,
+                    "status": "TRADING",
+                },
+            ]
+        },
+    )
+
+    assert len(events) == 1
+    event = events[0]
+    assert event.exchange == Exchange.BINANCE
+    assert event.market_type == MarketType.PERP
+    assert event.event_type == EventType.INSTRUMENT
+    assert event.symbol == "BTC-USDT"
+    assert event.sequence_id == "BTCUSDT:exchangeInfo"
+    assert event.payload["symbol"] == "BTC-USDT"
+    assert event.payload["base_asset"] == "BTC"
+    assert event.payload["quote_asset"] == "USDT"
+    assert event.payload["price_precision"] == 2
+    assert event.payload["qty_precision"] == 3
+    assert event.payload["contract_size"] == "1"
+    assert event.payload["expiry_ts"] is None
+
+
 def test_binance_open_interest_history_parser_normalizes_events() -> None:
     events = BinanceConnector().parse_open_interest_history(
         market_type=MarketType.PERP,

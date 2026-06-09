@@ -174,6 +174,12 @@ def _unsupported_reason(
         return f"{exchange} orderbook snapshot collector 尚未接入"
     if event_type == "orderbook":
         return ""
+    if event_type == "instrument" and day != current_date:
+        return "instrument-snapshot collector 只能采当前交易规则，不能回补历史 instrument 分区"
+    if event_type == "instrument" and exchange != "binance":
+        return f"{exchange} instrument snapshot collector 尚未接入"
+    if event_type == "instrument":
+        return ""
     if event_type not in {"trade", "mark", "funding", "open_interest"}:
         return f"collector 暂未支持事件类型：{event_type}"
     if event_type in {"mark", "funding", "open_interest"} and market_type not in {
@@ -197,11 +203,12 @@ def _collector_subcommand(event_type: str) -> str:
         "funding": "funding",
         "open_interest": "open-interest",
         "orderbook": "orderbook-snapshot",
+        "instrument": "instrument-snapshot",
     }[event_type]
 
 
 def _risk_tier(event_type: str) -> str:
-    if event_type in {"funding", "open_interest"}:
+    if event_type in {"funding", "open_interest", "instrument"}:
         return "low"
     if event_type == "mark":
         return "medium"
@@ -221,6 +228,7 @@ def _execution_group(event_type: str) -> str:
         "mark": "archive_mark",
         "trade": "archive_trade",
         "orderbook": "stream_orderbook",
+        "instrument": "metadata_snapshot",
     }.get(event_type, "unknown")
 
 

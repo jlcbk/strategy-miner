@@ -350,6 +350,68 @@ def test_plan_data_collection_commands_supports_current_binance_orderbook_snapsh
     assert plan.commands[0].execution_group == "stream_orderbook"
 
 
+def test_plan_data_collection_commands_supports_current_binance_instrument_snapshot() -> None:
+    plan = plan_data_collection_commands(
+        current_date=datetime(2026, 6, 9, tzinfo=timezone.utc).date(),
+        jobs=[
+            {
+                "id": "instrument-job",
+                "exchange": "binance",
+                "market_type": "perp",
+                "symbol": "BTCUSDT",
+                "event_type": "instrument",
+                "start_ts": "2026-06-09T00:00:00+00:00",
+                "end_ts": "2026-06-10T00:00:00+00:00",
+            },
+        ],
+    )
+
+    assert plan.supported_count == 1
+    assert plan.blocked_count == 0
+    assert plan.risk_counts == {"low": 1}
+    assert plan.commands[0].command == [
+        "python3",
+        "-m",
+        "apps.collector.main",
+        "instrument-snapshot",
+        "--exchange",
+        "binance",
+        "--market-type",
+        "perp",
+        "--symbol",
+        "BTCUSDT",
+        "--day",
+        "2026-06-09",
+        "--data-lake-root",
+        ".data/lake",
+    ]
+    assert plan.commands[0].requires_confirmation is False
+    assert plan.commands[0].execution_group == "metadata_snapshot"
+
+
+def test_plan_data_collection_commands_blocks_historical_instrument_snapshot() -> None:
+    plan = plan_data_collection_commands(
+        current_date=datetime(2026, 6, 9, tzinfo=timezone.utc).date(),
+        jobs=[
+            {
+                "id": "instrument-job",
+                "exchange": "binance",
+                "market_type": "perp",
+                "symbol": "BTCUSDT",
+                "event_type": "instrument",
+                "start_ts": "2026-06-08T00:00:00+00:00",
+                "end_ts": "2026-06-09T00:00:00+00:00",
+            },
+        ],
+    )
+
+    assert plan.supported_count == 0
+    assert plan.blocked_count == 1
+    assert plan.risk_counts == {"low": 1}
+    assert plan.commands[0].requires_confirmation is False
+    assert "不能回补历史 instrument 分区" in plan.commands[0].reason
+
+
 def test_plan_data_collection_commands_supports_bybit_low_and_medium_risk_jobs() -> None:
     plan = plan_data_collection_commands(
         current_date=datetime(2026, 6, 9, tzinfo=timezone.utc).date(),

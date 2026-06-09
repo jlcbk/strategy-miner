@@ -14,6 +14,7 @@ from packages.normalization.models import (
     EventType,
     Exchange,
     FundingPayload,
+    Instrument,
     MarkPricePayload,
     MarketEvent,
     MarketType,
@@ -262,6 +263,66 @@ class BinanceConnector:
             )
         raise NotImplementedError("Binance orderbook snapshot 当前支持 spot/perp/future")
 
+    def instrument_snapshot_endpoint(
+        self,
+        *,
+        market_type: MarketType,
+    ) -> RestMarketDataEndpoint:
+        if market_type == MarketType.SPOT:
+            return RestMarketDataEndpoint(
+                url="https://api.binance.com/api/v3/exchangeInfo",
+                params={},
+                notes="Spot exchange information snapshot",
+            )
+        if market_type in {MarketType.PERP, MarketType.FUTURE}:
+            return RestMarketDataEndpoint(
+                url="https://fapi.binance.com/fapi/v1/exchangeInfo",
+                params={},
+                notes="USD-M futures exchange information snapshot",
+            )
+        raise NotImplementedError("Binance instrument snapshot 当前支持 spot/perp/future")
+
+    def parse_instrument_snapshot(
+        self,
+        *,
+        market_type: MarketType,
+        symbol: str,
+        row: dict,
+        observed_at=None,
+    ) -> list[MarketEvent]:
+        observed = utc_now() if observed_at is None else observed_at
+        clean_symbol = symbol.replace("-", "").upper()
+        events: list[MarketEvent] = []
+        for raw_symbol in row.get("symbols", []):
+            if raw_symbol.get("symbol") != clean_symbol:
+                continue
+            normalized = normalize_symbol(
+                self.exchange,
+                raw_symbol["symbol"],
+                market_type,
+            )
+            instrument = _instrument_from_exchange_info(
+                raw_symbol,
+                market_type=market_type,
+                normalized_symbol=normalized.symbol,
+            )
+            events.append(
+                MarketEvent(
+                    exchange=self.exchange,
+                    market_type=market_type,
+                    symbol=normalized.symbol,
+                    base_asset=normalized.base_asset,
+                    quote_asset=normalized.quote_asset,
+                    event_type=EventType.INSTRUMENT,
+                    exchange_ts=observed,
+                    local_ts=observed,
+                    source="binance_exchange_info",
+                    sequence_id=f"{raw_symbol['symbol']}:exchangeInfo",
+                    payload=instrument,
+                )
+            )
+        return events
+
     def parse_orderbook_snapshot(
         self,
         *,
@@ -379,6 +440,32 @@ def _price_levels(rows, limit: int) -> list[PriceLevel]:
             continue
         levels.append(PriceLevel(raw[0], raw[1]))
     return levels
+
+
+def _instrument_from_exchange_info(
+    row: dict,
+    *,
+    market_type: MarketType,
+    normalized_symbol: str,
+) -> Instrument:
+    price_precision = row.get("pricePrecision") or row.get("quotePrecision")
+    qty_precision = row.get("quantityPrecision") or row.get("baseAssetPrecision")
+    contract_size = "1" if market_type in {MarketType.PERP, MarketType.FUTURE} else None
+    expiry_ts = row.get("deliveryDate")
+    if expiry_ts in {None, 0, "0", 4133404800000}:
+        expiry_ts = None
+    return Instrument(
+        exchange=Exchange.BINANCE,
+        market_type=market_type,
+        symbol=normalized_symbol,
+        base_asset=row["baseAsset"],
+        quote_asset=row["quoteAsset"],
+        price_precision=None if price_precision is None else int(price_precision),
+        qty_precision=None if qty_precision is None else int(qty_precision),
+        contract_size=contract_size,
+        expiry_ts=expiry_ts,
+        raw=row,
+    )
 
 
 def _bool(value: str | bool | None) -> bool | None:

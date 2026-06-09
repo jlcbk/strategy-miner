@@ -193,6 +193,28 @@ def ingest_orderbook_snapshot(
     return DataLakeWriter(data_lake_root).write_events(events)
 
 
+def ingest_instrument_snapshot(
+    *,
+    exchange: Exchange,
+    market_type: MarketType,
+    symbol: str,
+    data_lake_root: Path,
+) -> list[Path]:
+    if exchange != Exchange.BINANCE:
+        raise NotImplementedError("instrument-snapshot collector 当前仅支持 Binance")
+    connector = CONNECTORS[exchange]
+    observed_at = datetime.now(timezone.utc)
+    endpoint = connector.instrument_snapshot_endpoint(market_type=market_type)
+    row = download_json(endpoint)
+    events = connector.parse_instrument_snapshot(
+        market_type=market_type,
+        symbol=symbol,
+        row=row,
+        observed_at=observed_at,
+    )
+    return DataLakeWriter(data_lake_root).write_events(events)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Strategy Miner collector 工具")
     parser.add_argument(
@@ -203,6 +225,7 @@ def main(argv: list[str] | None = None) -> int:
             "open-interest",
             "funding",
             "orderbook-snapshot",
+            "instrument-snapshot",
             "show-ws",
         ],
     )
@@ -264,6 +287,17 @@ def main(argv: list[str] | None = None) -> int:
             symbol=args.symbol,
             data_lake_root=Path(args.data_lake_root),
             limit=depth_limit,
+        )
+        for path in written:
+            print(path)
+        return 0
+
+    if args.command == "instrument-snapshot":
+        written = ingest_instrument_snapshot(
+            exchange=exchange,
+            market_type=market_type,
+            symbol=args.symbol,
+            data_lake_root=Path(args.data_lake_root),
         )
         for path in written:
             print(path)
