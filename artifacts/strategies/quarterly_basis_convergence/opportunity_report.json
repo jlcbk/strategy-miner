@@ -1,0 +1,60 @@
+{
+  "kind": "opportunity_report",
+  "title": "Quarterly futures basis convergence deterministic fixture opportunity report",
+  "created_by": "codex",
+  "created_at": "2026-06-09T00:00:00+00:00",
+  "strategy_name": "quarterly_basis_convergence",
+  "strategy_version": "0.1.0",
+  "data_window": {
+    "start_ts": "2024-01-01T00:00:00+00:00",
+    "end_ts": "2024-01-01T00:00:00+00:00"
+  },
+  "opportunity_count": 1,
+  "opportunities": [
+    {
+      "strategy": "quarterly_basis_convergence",
+      "version": "0.1.0",
+      "legs": [
+        {
+          "exchange": "binance",
+          "market_type": "spot",
+          "symbol": "BTC-USDT",
+          "side": "buy",
+          "price": "100",
+          "qty": "10",
+          "role": "taker"
+        },
+        {
+          "exchange": "binance",
+          "market_type": "future",
+          "symbol": "BTC-USDT",
+          "side": "sell",
+          "price": "103",
+          "qty": "10",
+          "role": "taker"
+        }
+      ],
+      "gross_edge_usd": "30",
+      "fees_usd": "0",
+      "slippage_est_usd": "0",
+      "net_edge_usd": "30",
+      "capacity_usd": "1000",
+      "confidence": "0.6350",
+      "risk_score": "0.3650",
+      "grade": "A",
+      "failure_modes": [],
+      "data_window": {
+        "start_ts": "2024-01-01T00:00:00+00:00",
+        "end_ts": "2024-01-01T00:00:00+00:00"
+      },
+      "metadata": {
+        "basis_bps": "300.00",
+        "expiry_ts": "2024-01-31T00:00:00+00:00",
+        "days_to_expiry": "30.00",
+        "annualized_basis": "0.3650",
+        "contract_size": "1"
+      }
+    }
+  ],
+  "result_hash": "a9d6179a7fbbd9ba120505cac449aa46a37c58c64c2717d91fb49c79de67185e"
+}

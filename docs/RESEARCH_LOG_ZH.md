@@ -418,3 +418,24 @@
 ### 状态结论
 
 #2 已从 artifact 推进到最小可测 evaluator 和 replay fixture。它仍不是验证通过策略，也不能进入实盘；真实验证仍需要补齐目标窗口的 dated futures mark、spot/perp trade-derived candle、instrument metadata、fees 和 depth_volume 分区。
+
+## 2026-06-09：#2 Quarterly basis fixture opportunity report
+
+本轮将 #2 的最小 replay 输出沉淀为机器可读 `opportunity_report` fixture artifact：
+
+- `artifacts/strategies/quarterly_basis_convergence/opportunity_report.json`
+
+### report 内容
+
+- `kind`：`opportunity_report`
+- `strategy_name`：`quarterly_basis_convergence`
+- `strategy_version`：`0.1.0`
+- `opportunity_count`：`1`
+- `result_hash`：基于最小 replay result 的稳定 sha256。
+- 输出双腿：`spot buy` + `future sell`。
+- 关键 metadata：`basis_bps=300.00`、`days_to_expiry=30.00`、`annualized_basis=0.3650`、`contract_size=1`。
+- `failure_modes`：空。
+
+### 边界
+
+该 report 标题明确为 deterministic fixture opportunity report。它用于验证 artifact/schema/replay 链路，不代表真实历史回放通过，也不应触发 `strategy:validation-ready` 状态变更。#2 继续保持 `strategy:blocked-data`，直到真实 data lake 覆盖目标窗口。
