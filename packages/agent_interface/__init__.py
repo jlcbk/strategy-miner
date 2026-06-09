@@ -16,7 +16,6 @@ from packages.agent_interface.research_funnel import (
     rank_strategy_candidates,
     scoring_contract,
 )
-from packages.agent_interface.tools import ToolResult, available_tools, run_tool
 from packages.agent_interface.validation_plan import (
     RequirementPlan,
     RequirementStatus,
@@ -56,3 +55,13 @@ __all__ = [
     "scoring_contract",
     "validation_planning_contract",
 ]
+
+_TOOL_EXPORTS = {"ToolResult", "available_tools", "run_tool"}
+
+
+def __getattr__(name: str):
+    if name in _TOOL_EXPORTS:
+        from packages.agent_interface import tools
+
+        return getattr(tools, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

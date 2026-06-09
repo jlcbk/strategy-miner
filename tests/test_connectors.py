@@ -187,6 +187,53 @@ def test_binance_open_interest_history_endpoint_uses_day_window_params() -> None
     }
 
 
+def test_binance_orderbook_snapshot_endpoint_uses_top20_depth() -> None:
+    spot = BinanceConnector().orderbook_snapshot_endpoint(
+        market_type=MarketType.SPOT,
+        symbol="BTC-USDT",
+        limit=20,
+    )
+    perp = BinanceConnector().orderbook_snapshot_endpoint(
+        market_type=MarketType.PERP,
+        symbol="BTCUSDT",
+        limit=20,
+    )
+
+    assert spot.url == "https://api.binance.com/api/v3/depth"
+    assert spot.params == {"symbol": "BTCUSDT", "limit": "20"}
+    assert perp.url == "https://fapi.binance.com/fapi/v1/depth"
+    assert perp.params == {"symbol": "BTCUSDT", "limit": "20"}
+
+
+def test_binance_orderbook_snapshot_parser_caps_top20_levels() -> None:
+    observed_at = datetime(2026, 6, 9, 1, 0, tzinfo=timezone.utc)
+    events = BinanceConnector().parse_orderbook_snapshot(
+        market_type=MarketType.PERP,
+        symbol="BTCUSDT",
+        observed_at=observed_at,
+        limit=20,
+        row={
+            "lastUpdateId": 123,
+            "T": 1780966800000,
+            "bids": [[str(100 - index), "1"] for index in range(25)],
+            "asks": [[str(101 + index), "2"] for index in range(25)],
+        },
+    )
+
+    assert len(events) == 1
+    event = events[0]
+    assert event.exchange == Exchange.BINANCE
+    assert event.market_type == MarketType.PERP
+    assert event.event_type == EventType.ORDERBOOK
+    assert event.symbol == "BTC-USDT"
+    assert event.sequence_id == "BTCUSDT:123"
+    assert event.partition_date == "2026-06-09"
+    assert len(event.payload["bids"]) == 20
+    assert len(event.payload["asks"]) == 20
+    assert event.payload["update_id"] == "123"
+    assert event.payload["is_snapshot"] is True
+
+
 def test_binance_open_interest_history_parser_normalizes_events() -> None:
     events = BinanceConnector().parse_open_interest_history(
         market_type=MarketType.PERP,

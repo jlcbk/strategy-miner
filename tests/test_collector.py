@@ -187,6 +187,38 @@ def test_ingest_bybit_mark_writes_data_lake_partition(tmp_path, monkeypatch) -> 
     assert "event_type=mark" in written[0].parts
 
 
+def test_ingest_binance_orderbook_snapshot_writes_data_lake_partition(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    def fake_download_json(endpoint):
+        assert endpoint.url == "https://fapi.binance.com/fapi/v1/depth"
+        assert endpoint.params == {"symbol": "BTCUSDT", "limit": "20"}
+        return {
+            "lastUpdateId": 123,
+            "T": 1780966800000,
+            "bids": [["100", "1"]],
+            "asks": [["101", "2"]],
+        }
+
+    monkeypatch.setattr(collector_main, "download_json", fake_download_json)
+
+    written = collector_main.ingest_orderbook_snapshot(
+        exchange=Exchange.BINANCE,
+        market_type=MarketType.PERP,
+        symbol="BTCUSDT",
+        data_lake_root=tmp_path,
+        limit=20,
+    )
+
+    assert len(written) == 1
+    assert "exchange=binance" in written[0].parts
+    assert "date=2026-06-09" in written[0].parts
+    assert "market_type=perp" in written[0].parts
+    assert "symbol=BTC-USDT" in written[0].parts
+    assert "event_type=orderbook" in written[0].parts
+
+
 def _zip_csv(name: str, content: str) -> bytes:
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w") as archive:

@@ -139,6 +139,7 @@ python3 -m apps.cli.main run-tool plan_data_collection_commands --payload-json '
 - Binance `mark` -> `historical-mark`
 - Binance `funding` -> `funding`
 - Binance `open_interest` -> `open-interest`，但官方历史 REST 只支持最近约 1 个月
+- Binance `orderbook` -> `orderbook-snapshot`，只支持当前盘口快照，不能回补历史分区
 - Bybit `trade` -> `historical-trades`
 - Bybit `mark` -> `historical-mark`
 - Bybit `funding` -> `funding`
@@ -149,7 +150,7 @@ python3 -m apps.cli.main run-tool plan_data_collection_commands --payload-json '
 
 - `low`：小 REST 数据，例如 `funding`、`open_interest`
 - `medium`：中等归档数据，例如 1m `mark`
-- `high`：大归档数据，例如逐笔 `trade`，默认需要人工确认后再执行
+- `high`：大归档数据或高频热数据入口，例如逐笔 `trade`、`orderbook-snapshot`，默认需要人工确认后再执行
 
 因此验证前补数应优先跑 `low` / `medium` 命令，等磁盘和下载窗口确认后再跑 `high` 命令。
 
@@ -212,6 +213,7 @@ event_type=trade
 - 对 #5 这类 order-book imbalance 策略，MVP 只允许作为 1m 到 5m 过滤器评估，不允许演变成无人值守高频做市。
 - 如果策略要求全量深度、100ms 级 snapshot 或 L2 delta，需要单独标记为 `orderbook_full_depth`，重新评估磁盘、延迟、保留期和 operator fit。
 - 任何依赖 `depth_volume` 的策略，在 data coverage 未满足 `orderbook` 和 `trade` 分区前，都保持 `strategy:blocked-data`。
+- 当前 `orderbook-snapshot` collector 只采当前 Binance spot/perp/future top20 快照。它适合让数据层从现在开始积累热数据，不适合补齐过去日期的 `orderbook` 分区。
 
 ## 有 500GB SSD + 3TB HDD 时
 

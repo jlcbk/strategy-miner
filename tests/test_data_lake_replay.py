@@ -305,7 +305,49 @@ def test_plan_data_collection_commands_marks_orderbook_as_high_risk_blocked_job(
     assert plan.commands[0].risk_tier == "high"
     assert plan.commands[0].requires_confirmation is True
     assert plan.commands[0].execution_group == "stream_orderbook"
-    assert "top20 1s snapshot" in plan.commands[0].reason
+    assert "不能回补历史 orderbook 分区" in plan.commands[0].reason
+
+
+def test_plan_data_collection_commands_supports_current_binance_orderbook_snapshot() -> None:
+    plan = plan_data_collection_commands(
+        current_date=datetime(2026, 6, 9, tzinfo=timezone.utc).date(),
+        jobs=[
+            {
+                "id": "orderbook-job",
+                "exchange": "binance",
+                "market_type": "perp",
+                "symbol": "BTCUSDT",
+                "event_type": "orderbook",
+                "start_ts": "2026-06-09T00:00:00+00:00",
+                "end_ts": "2026-06-10T00:00:00+00:00",
+            },
+        ],
+    )
+
+    assert plan.supported_count == 1
+    assert plan.blocked_count == 0
+    assert plan.risk_counts == {"high": 1}
+    assert plan.commands[0].command == [
+        "python3",
+        "-m",
+        "apps.collector.main",
+        "orderbook-snapshot",
+        "--exchange",
+        "binance",
+        "--market-type",
+        "perp",
+        "--symbol",
+        "BTCUSDT",
+        "--day",
+        "2026-06-09",
+        "--data-lake-root",
+        ".data/lake",
+        "--limit",
+        "20",
+    ]
+    assert plan.commands[0].risk_tier == "high"
+    assert plan.commands[0].requires_confirmation is True
+    assert plan.commands[0].execution_group == "stream_orderbook"
 
 
 def test_plan_data_collection_commands_supports_bybit_low_and_medium_risk_jobs() -> None:

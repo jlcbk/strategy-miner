@@ -152,3 +152,25 @@
 ### 状态结论
 
 采样政策不再是 #4/#5 的主要阻塞。当前主要阻塞变为实际数据分区缺失，以及 `orderbook`、`index`、`fee`、`instrument` collector 尚未接入。两个策略仍保持 `strategy:blocked-data`，直到目标 data coverage 满足验证窗口。
+
+## 2026-06-09：Binance orderbook snapshot collector
+
+本轮新增 Binance 当前盘口快照 collector，用于让数据层从现在开始积累 `orderbook` 热数据。
+
+### 能力边界
+
+- 新命令：`python3 -m apps.collector.main orderbook-snapshot --exchange binance --market-type perp --symbol BTCUSDT --limit 20 --data-lake-root .data/lake`
+- Spot 使用 `https://api.binance.com/api/v3/depth`。
+- USD-M futures 使用 `https://fapi.binance.com/fapi/v1/depth`。
+- 当前只保存 top20 bid/ask，匹配 `depth_volume` MVP。
+- 该命令只采当前盘口，不能回补历史 `orderbook` 分区。
+
+### 工具状态变化
+
+- `plan_data_collection_commands` 对 Binance 当日 `orderbook` job 输出 `orderbook-snapshot` 命令。
+- 历史日期的 `orderbook` job 仍保持 blocked，原因是 snapshot collector 不能回补历史分区。
+- 风险等级为 `high`，因为它属于高频热数据入口，虽然单次 REST 数据较小。
+
+### 对策略状态的影响
+
+#4 和 #5 的一个 collector 阻塞被部分解除：可以从当前时间开始采集 Binance top20 orderbook snapshot。它们仍保持 `strategy:blocked-data`，因为目标验证窗口还缺历史 `orderbook`、`trade`、`fee`、`index`、`instrument` 等分区。

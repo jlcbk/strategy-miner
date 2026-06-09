@@ -53,3 +53,16 @@ Mark price 用统一 `EventType.MARK` 和 `MarkPricePayload` 表达。当前 col
 - Bybit V5：
   - REST 序列已接 `https://api.bybit.com/v5/market/mark-price-kline`
   - 默认使用 5m interval 覆盖单日窗口，作为中风险替代源。
+
+## Order Book
+
+Order book 用统一 `EventType.ORDERBOOK` 和 `OrderBookPayload` 表达。当前先接入 Binance 当前盘口快照，不做历史回补：
+
+- Binance Spot：
+  - 当前快照已接 `https://api.binance.com/api/v3/depth`
+  - MVP limit 固定为 20，写入 top20 bid/ask。
+- Binance USD-M Futures：
+  - 当前快照已接 `https://fapi.binance.com/fapi/v1/depth`
+  - MVP limit 固定为 20，写入 top20 bid/ask。
+
+注意：`orderbook-snapshot` 只能采当前盘口，用于从 collector 上线后开始积累热数据；它不能补齐历史 `orderbook` 分区。需要历史盘口验证时，应使用后续实时采集积累的数据，或接入交易所/第三方历史 orderbook 归档。

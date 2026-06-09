@@ -138,6 +138,8 @@ def _command_for_job(
     ]
     if event_type in {"trade", "mark"}:
         command.extend(["--download-dir", download_dir])
+    if event_type == "orderbook":
+        command.extend(["--limit", "20"])
     return CollectorCommand(
         job_id=job_id,
         exchange=exchange,
@@ -166,8 +168,12 @@ def _unsupported_reason(
     day: date,
     current_date: date,
 ) -> str:
+    if event_type == "orderbook" and day != current_date:
+        return "orderbook-snapshot collector 只能采当前盘口，不能回补历史 orderbook 分区"
+    if event_type == "orderbook" and exchange != "binance":
+        return f"{exchange} orderbook snapshot collector 尚未接入"
     if event_type == "orderbook":
-        return "orderbook snapshot collector 尚未接入；MVP 目标为 top20 1s snapshot"
+        return ""
     if event_type not in {"trade", "mark", "funding", "open_interest"}:
         return f"collector 暂未支持事件类型：{event_type}"
     if event_type in {"mark", "funding", "open_interest"} and market_type not in {
@@ -190,6 +196,7 @@ def _collector_subcommand(event_type: str) -> str:
         "mark": "historical-mark",
         "funding": "funding",
         "open_interest": "open-interest",
+        "orderbook": "orderbook-snapshot",
     }[event_type]
 
 

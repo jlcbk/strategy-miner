@@ -165,6 +165,34 @@ def ingest_funding(
     return DataLakeWriter(data_lake_root).write_events(events)
 
 
+def ingest_orderbook_snapshot(
+    *,
+    exchange: Exchange,
+    market_type: MarketType,
+    symbol: str,
+    data_lake_root: Path,
+    limit: int = 20,
+) -> list[Path]:
+    if exchange != Exchange.BINANCE:
+        raise NotImplementedError("orderbook-snapshot collector 当前仅支持 Binance")
+    connector = CONNECTORS[exchange]
+    observed_at = datetime.now(timezone.utc)
+    endpoint = connector.orderbook_snapshot_endpoint(
+        market_type=market_type,
+        symbol=symbol,
+        limit=limit,
+    )
+    row = download_json(endpoint)
+    events = connector.parse_orderbook_snapshot(
+        market_type=market_type,
+        symbol=symbol,
+        row=row,
+        observed_at=observed_at,
+        limit=limit,
+    )
+    return DataLakeWriter(data_lake_root).write_events(events)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Strategy Miner collector 工具")
     parser.add_argument(
@@ -174,6 +202,7 @@ def main(argv: list[str] | None = None) -> int:
             "historical-mark",
             "open-interest",
             "funding",
+            "orderbook-snapshot",
             "show-ws",
         ],
     )
@@ -222,6 +251,19 @@ def main(argv: list[str] | None = None) -> int:
             day=date.fromisoformat(args.day),
             data_lake_root=Path(args.data_lake_root),
             limit=args.limit,
+        )
+        for path in written:
+            print(path)
+        return 0
+
+    if args.command == "orderbook-snapshot":
+        depth_limit = 20 if args.limit == 500 else args.limit
+        written = ingest_orderbook_snapshot(
+            exchange=exchange,
+            market_type=market_type,
+            symbol=args.symbol,
+            data_lake_root=Path(args.data_lake_root),
+            limit=depth_limit,
         )
         for path in written:
             print(path)

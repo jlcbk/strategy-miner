@@ -18,6 +18,8 @@ from packages.normalization.models import (
     MarketEvent,
     MarketType,
     OpenInterestPayload,
+    OrderBookPayload,
+    PriceLevel,
     TradePayload,
     utc_now,
 )
@@ -236,6 +238,71 @@ class BinanceConnector:
             notes="USD-M futures funding rate history",
         )
 
+    def orderbook_snapshot_endpoint(
+        self,
+        *,
+        market_type: MarketType,
+        symbol: str,
+        limit: int = 20,
+    ) -> RestMarketDataEndpoint:
+        if limit > 20:
+            raise ValueError("Strategy Miner MVP 只采 top20 orderbook snapshot")
+        clean_symbol = symbol.replace("-", "").upper()
+        if market_type == MarketType.SPOT:
+            return RestMarketDataEndpoint(
+                url="https://api.binance.com/api/v3/depth",
+                params={"symbol": clean_symbol, "limit": str(limit)},
+                notes="Spot order book snapshot；MVP 只保存 top20",
+            )
+        if market_type in {MarketType.PERP, MarketType.FUTURE}:
+            return RestMarketDataEndpoint(
+                url="https://fapi.binance.com/fapi/v1/depth",
+                params={"symbol": clean_symbol, "limit": str(limit)},
+                notes="USD-M futures order book snapshot；MVP 只保存 top20",
+            )
+        raise NotImplementedError("Binance orderbook snapshot 当前支持 spot/perp/future")
+
+    def parse_orderbook_snapshot(
+        self,
+        *,
+        market_type: MarketType,
+        symbol: str,
+        row: dict,
+        observed_at=None,
+        limit: int = 20,
+    ) -> list[MarketEvent]:
+        normalized = normalize_symbol(self.exchange, symbol, market_type)
+        observed = utc_now() if observed_at is None else observed_at
+        exchange_ts = row.get("T") or row.get("E") or observed
+        update_id = row.get("lastUpdateId")
+        bids = _price_levels(row.get("bids", []), limit)
+        asks = _price_levels(row.get("asks", []), limit)
+        if not bids or not asks:
+            return []
+        sequence_id = (
+            f"{symbol.upper()}:{update_id}" if update_id is not None else symbol.upper()
+        )
+        return [
+            MarketEvent(
+                exchange=self.exchange,
+                market_type=market_type,
+                symbol=normalized.symbol,
+                base_asset=normalized.base_asset,
+                quote_asset=normalized.quote_asset,
+                event_type=EventType.ORDERBOOK,
+                exchange_ts=exchange_ts,
+                local_ts=observed,
+                source="binance_orderbook_snapshot",
+                sequence_id=sequence_id,
+                payload=OrderBookPayload(
+                    bids=tuple(bids),
+                    asks=tuple(asks),
+                    update_id=update_id,
+                    is_snapshot=True,
+                ),
+            )
+        ]
+
     def parse_funding_rate_history(
         self,
         *,
@@ -303,6 +370,15 @@ def _to_millis(value) -> int:
     if isinstance(value, str):
         return _to_millis(datetime.fromisoformat(value.replace("Z", "+00:00")))
     raise TypeError(f"不支持的时间戳值：{value!r}")
+
+
+def _price_levels(rows, limit: int) -> list[PriceLevel]:
+    levels: list[PriceLevel] = []
+    for raw in rows[:limit]:
+        if len(raw) < 2:
+            continue
+        levels.append(PriceLevel(raw[0], raw[1]))
+    return levels
 
 
 def _bool(value: str | bool | None) -> bool | None:
