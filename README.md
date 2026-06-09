@@ -77,6 +77,7 @@ python -m apps.cli.main run-tool rank_strategy_candidates --payload-json '<strat
 - 用 GitHub Issue 记录策略灵感；新建 issue 时选择 `Strategy idea` 模板。
 - 用 label 表示策略生命周期，例如 `strategy:idea`、`strategy:proposed`、`strategy:validation-ready`、`strategy:blocked-data`。
 - 每个策略进入验证前，都要对照 [docs/OPERATOR_PROFILE_ZH.md](docs/OPERATOR_PROFILE_ZH.md) 判断是否适合我们的操作条件。
+- 已创建和筛选的策略批次记录在 [docs/RESEARCH_LOG_ZH.md](docs/RESEARCH_LOG_ZH.md)。
 
 ## 流水线和存储策略
 
