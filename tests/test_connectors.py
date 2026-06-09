@@ -1,8 +1,12 @@
 import io
 import zipfile
 from datetime import date, datetime, timezone
+from urllib.error import HTTPError
 
-from packages.connectors.base import HistoricalDataRequest
+import pytest
+
+from packages.connectors import base as connector_base
+from packages.connectors.base import DownloadError, HistoricalDataRequest, RestMarketDataEndpoint
 from packages.connectors.binance import BinanceConnector
 from packages.connectors.bybit import BybitConnector
 from packages.connectors.okx import OKXConnector
@@ -25,6 +29,23 @@ def test_binance_public_trade_archive_url() -> None:
         "BTCUSDT/BTCUSDT-trades-2024-01-02.zip"
     )
     assert file.compression == "zip"
+
+
+def test_download_json_wraps_http_errors(monkeypatch) -> None:
+    def fake_urlopen(url, timeout):
+        raise HTTPError(url, 451, "", hdrs=None, fp=None)
+
+    monkeypatch.setattr(connector_base, "urlopen", fake_urlopen)
+
+    with pytest.raises(DownloadError, match="HTTP 451") as exc_info:
+        connector_base.download_json(
+            RestMarketDataEndpoint(
+                url="https://example.test/api",
+                params={"symbol": "BTCUSDT"},
+            )
+        )
+
+    assert "https://example.test/api?symbol=BTCUSDT" in str(exc_info.value)
 
 
 def test_binance_public_mark_price_archive_url() -> None:

@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 from typing import Iterable, Protocol
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import urlopen
 
@@ -47,6 +48,13 @@ class RestMarketDataEndpoint:
     notes: str = ""
 
 
+class DownloadError(RuntimeError):
+    def __init__(self, url: str, reason: str) -> None:
+        super().__init__(f"{reason}：{url}")
+        self.url = url
+        self.reason = reason
+
+
 class PublicDataConnector(Protocol):
     exchange: Exchange
 
@@ -81,8 +89,7 @@ def download_file(file: HistoricalFile, target_dir: str | Path) -> Path:
     target.mkdir(parents=True, exist_ok=True)
     file_name = file.url.rstrip("/").split("/")[-1]
     output = target / file_name
-    with urlopen(file.url, timeout=30) as response:
-        output.write_bytes(response.read())
+    output.write_bytes(_download_bytes(file.url))
     return output
 
 
@@ -90,8 +97,7 @@ def download_json(endpoint: RestMarketDataEndpoint):
     url = endpoint.url
     if endpoint.params:
         url = f"{url}?{urlencode(endpoint.params)}"
-    with urlopen(url, timeout=30) as response:
-        return json.loads(response.read().decode("utf-8"))
+    return json.loads(_download_bytes(url).decode("utf-8"))
 
 
 def csv_rows_from_archive(raw: bytes, compression: str) -> list[dict[str, str]]:
@@ -122,6 +128,18 @@ def _decompress(raw: bytes, compression: str) -> bytes:
     if compression == "none":
         return raw
     raise ValueError(f"不支持的压缩格式：{compression}")
+
+
+def _download_bytes(url: str) -> bytes:
+    try:
+        with urlopen(url, timeout=30) as response:
+            return response.read()
+    except HTTPError as exc:
+        raise DownloadError(url, f"HTTP {exc.code}") from exc
+    except URLError as exc:
+        raise DownloadError(url, f"URL error {exc.reason}") from exc
+    except OSError as exc:
+        raise DownloadError(url, f"network error {exc}") from exc
 
 
 def _looks_like_header(row: list[str]) -> bool:

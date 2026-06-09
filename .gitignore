@@ -3,6 +3,7 @@
 __pycache__/
 *.py[cod]
 var/
+.data/
 .env
 .env.*
 !.env.example

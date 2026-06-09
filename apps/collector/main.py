@@ -1,10 +1,16 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 
-from packages.connectors.base import HistoricalDataRequest, download_file, download_json
+from packages.connectors.base import (
+    DownloadError,
+    HistoricalDataRequest,
+    download_file,
+    download_json,
+)
 from packages.connectors.binance import BinanceConnector
 from packages.connectors.bybit import BybitConnector
 from packages.data_lake.store import DataLakeWriter
@@ -229,4 +235,8 @@ def _day_window(day: date) -> tuple[datetime, datetime]:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    try:
+        raise SystemExit(main())
+    except DownloadError as exc:
+        print(f"下载失败：{exc}", file=sys.stderr)
+        raise SystemExit(2) from exc
