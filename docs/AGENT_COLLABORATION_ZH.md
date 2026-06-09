@@ -82,6 +82,12 @@ python -m apps.cli.main run-tool rank_strategy_candidates --payload-json '{"cand
 python -m apps.cli.main run-tool plan_strategy_validation --payload-json '{"proposal":{"strategy_name":"funding_carry","data_requirements":["funding","mark_price","spot_candles","fees"]}}'
 ```
 
+检查本地 data lake 是否已有目标窗口的验证数据：
+
+```bash
+python -m apps.cli.main run-tool check_data_coverage --payload-json '{"root":"/data/hdd/strategy-miner/lake","proposal":{"strategy_name":"funding_carry","data_requirements":["funding","mark_price"]},"exchanges":["binance"],"market_types":["perp"],"symbols":["BTCUSDT"],"start_date":"2024-01-01","end_date":"2024-01-01"}'
+```
+
 CLI 输出 JSON，方便 agent 直接解析。
 
 `rank_strategy_candidates` 使用 0 到 5 分的研究维度：

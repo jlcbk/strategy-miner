@@ -59,6 +59,7 @@ def test_agent_tools_return_json_ready_payloads() -> None:
         "check_guardrail",
         "rank_strategy_candidates",
         "plan_strategy_validation",
+        "check_data_coverage",
     }
 
     result = run_tool("check_guardrail", {"action": "place_order"})

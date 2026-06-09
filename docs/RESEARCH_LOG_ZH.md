@@ -62,3 +62,23 @@
 - 将 #3 标记为 `strategy:validation-ready`。
 - 后续验证前仍需比较 Binance / OKX / Bybit / Bitget 的 OI 口径、采样间隔和数据延迟。
 - 该 evaluator 仍是研究候选，不能用于真实交易或自动部署。
+
+## 2026-06-09：Data coverage 检查工具
+
+本轮新增 `check_data_coverage` agent 工具，用于在 replay/backtest 前检查 data lake 是否已经存在目标分区。
+
+### 工具行为
+
+- 输入：data lake root、`strategy_proposal`、交易所、市场类型、品种和日期窗口。
+- 输出：覆盖数量、缺失数量、缺失分区、unsupported requirement。
+- 当前只做本地文件系统检查，不联网补数，不触发交易。
+
+### 首次检查结果
+
+当前本地 `/Users/cui/test3/.data/lake` 没有生产数据分区，因此 #1、#2、#3 都不能直接进入 replay。下一步应为这些 `strategy:validation-ready` issue 生成 data collection jobs 或 fixture 数据。
+
+### Issue 状态调整
+
+- #1、#2、#3 都保留为高优先级候选，但因为本地 data lake 覆盖率为 0%，先改为 `strategy:blocked-data`。
+- 解除阻塞的条件不是重新研究策略，而是补齐目标窗口的 funding、mark、trade、fee、instrument 或 open interest 分区。
+- 数据分区补齐后，应重新运行 `check_data_coverage`，覆盖率为 100% 时再恢复 `strategy:validation-ready`。

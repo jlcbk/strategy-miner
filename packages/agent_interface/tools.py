@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date
 from typing import Any
 
 from packages.agent_interface.guardrails import AgentAction, AgentGuardrails
@@ -13,6 +14,7 @@ from packages.agent_interface.validation_plan import (
     plan_strategy_validation,
     validation_planning_contract,
 )
+from packages.data_lake.coverage import check_data_coverage
 from packages.strategies import (
     CrossExchangeSpreadStrategy,
     FundingCarryStrategy,
@@ -55,6 +57,22 @@ def available_tools() -> list[dict[str, Any]]:
             "description": "检查 strategy_proposal 的数据需求是否可进入验证准备。",
             "allowed_action": AgentAction.CREATE_STRATEGY_PROPOSAL.value,
             "input_contract": validation_planning_contract(),
+        },
+        {
+            "name": "check_data_coverage",
+            "description": "检查 data lake 是否已有验证所需事件分区。",
+            "allowed_action": AgentAction.CREATE_STRATEGY_PROPOSAL.value,
+            "input_contract": {
+                "required": [
+                    "root",
+                    "proposal",
+                    "exchanges",
+                    "market_types",
+                    "symbols",
+                    "start_date",
+                    "end_date",
+                ],
+            },
         },
     ]
 
@@ -127,4 +145,25 @@ def run_tool(name: str, payload: dict[str, Any] | None = None) -> ToolResult:
         except ValueError as exc:
             return ToolResult(ok=False, payload={}, message=str(exc))
         return ToolResult(ok=True, payload={"validation_plan": plan.to_dict()})
+    if name == "check_data_coverage":
+        try:
+            report = check_data_coverage(
+                root=payload["root"],
+                proposal=payload["proposal"],
+                exchanges=_required_list(payload, "exchanges"),
+                market_types=_required_list(payload, "market_types"),
+                symbols=_required_list(payload, "symbols"),
+                start_date=date.fromisoformat(str(payload["start_date"])),
+                end_date=date.fromisoformat(str(payload["end_date"])),
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            return ToolResult(ok=False, payload={}, message=str(exc))
+        return ToolResult(ok=True, payload={"coverage": report.to_dict()})
     return ToolResult(ok=False, payload={}, message=f"未知工具：{name}")
+
+
+def _required_list(payload: dict[str, Any], key: str) -> list[str]:
+    value = payload[key]
+    if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+        raise ValueError(f"{key} 必须是字符串数组")
+    return value
