@@ -7,6 +7,7 @@ from packages.data_lake import (
     check_data_coverage,
     generate_data_collection_jobs,
 )
+from packages.data_lake.collection_commands import plan_data_collection_commands
 from packages.normalization import (
     FundingPayload,
     MarketEvent,
@@ -184,3 +185,64 @@ def test_generate_data_collection_jobs_from_missing_partitions(tmp_path) -> None
     assert plan.jobs[0].start_ts == "2024-01-01T00:00:00+00:00"
     assert plan.jobs[0].end_ts == "2024-01-02T00:00:00+00:00"
     assert plan.jobs[0].status == "queued"
+
+
+def test_generate_data_collection_jobs_deduplicates_physical_partitions(tmp_path) -> None:
+    proposal = {
+        "strategy_name": "oi_confirmed_momentum",
+        "data_requirements": ["perp_mark_price", "perp_candles"],
+    }
+
+    plan = generate_data_collection_jobs(
+        root=tmp_path,
+        proposal=proposal,
+        exchanges=["binance"],
+        market_types=["perp"],
+        symbols=["BTCUSDT"],
+        start_date=datetime(2024, 1, 1, tzinfo=timezone.utc).date(),
+        end_date=datetime(2024, 1, 1, tzinfo=timezone.utc).date(),
+    )
+
+    assert [job.event_type for job in plan.jobs] == ["mark", "trade"]
+    mark_job = plan.jobs[0]
+    assert mark_job.details["normalized_requirements"] == [
+        "perp_mark_price",
+        "perp_candles",
+    ]
+
+
+def test_plan_data_collection_commands_marks_supported_and_blocked_jobs() -> None:
+    plan = plan_data_collection_commands(
+        current_date=datetime(2026, 6, 9, tzinfo=timezone.utc).date(),
+        jobs=[
+            {
+                "id": "trade-job",
+                "exchange": "bybit",
+                "market_type": "perp",
+                "symbol": "BTCUSDT",
+                "event_type": "trade",
+                "start_ts": "2026-06-08T00:00:00+00:00",
+                "end_ts": "2026-06-09T00:00:00+00:00",
+            },
+            {
+                "id": "funding-job",
+                "exchange": "okx",
+                "market_type": "perp",
+                "symbol": "BTCUSDT",
+                "event_type": "funding",
+                "start_ts": "2026-06-08T00:00:00+00:00",
+                "end_ts": "2026-06-09T00:00:00+00:00",
+            },
+        ],
+    )
+
+    assert plan.supported_count == 1
+    assert plan.blocked_count == 1
+    assert plan.commands[0].command[:4] == [
+        "python3",
+        "-m",
+        "apps.collector.main",
+        "historical-trades",
+    ]
+    assert plan.commands[1].supported is False
+    assert plan.commands[1].reason == "okx funding collector 尚未接入"

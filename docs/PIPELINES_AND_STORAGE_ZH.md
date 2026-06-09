@@ -121,9 +121,26 @@ collector stream \
 -> 满足则进入 replay/backtest
 -> 不满足则标记 blocked_missing_data
 -> 同时创建 data_collection_job
+-> 将 data_collection_job 转换成 collector CLI 命令或明确阻塞原因
 ```
 
 这样可以保证验证结果可复现，也能避免不同 agent 会话各自抓一份不一致的数据。
+
+当前可用工具链：
+
+```bash
+python3 -m apps.cli.main run-tool generate_data_collection_jobs --payload-json '{...}'
+python3 -m apps.cli.main run-tool plan_data_collection_commands --payload-json '{"jobs":[...]}'
+```
+
+`plan_data_collection_commands` 不会执行下载，只输出可执行命令和阻塞原因。当前映射边界：
+
+- Binance `trade` -> `historical-trades`
+- Binance `mark` -> `historical-mark`
+- Binance `funding` -> `funding`
+- Binance `open_interest` -> `open-interest`，但官方历史 REST 只支持最近约 1 个月
+- Bybit `trade` -> `historical-trades`
+- 其他交易所或事件类型会标记为 blocked，并返回尚未接入的原因
 
 ## 三个月数据规模估算
 

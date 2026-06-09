@@ -192,7 +192,17 @@ def generate_data_collection_jobs(
     missing_items = coverage.missing_items
     if limit is not None:
         missing_items = missing_items[: max(0, limit)]
-    jobs = [_job_from_missing_item(item) for item in missing_items]
+    jobs_by_id: dict[str, DataCollectionJob] = {}
+    for item in missing_items:
+        job = _job_from_missing_item(item)
+        if job.id in jobs_by_id:
+            jobs_by_id[job.id] = _merge_job_requirements(
+                jobs_by_id[job.id],
+                item.normalized_requirement,
+            )
+        else:
+            jobs_by_id[job.id] = job
+    jobs = list(jobs_by_id.values())
     return DataCollectionJobPlan(coverage=coverage, jobs=jobs)
 
 
@@ -313,5 +323,31 @@ def _job_from_missing_item(item: CoverageItem) -> DataCollectionJob:
         event_type=item.event_type,
         start_ts=start_ts.isoformat(),
         end_ts=end_ts.isoformat(),
-        details={"normalized_requirement": item.normalized_requirement},
+        details={
+            "normalized_requirement": item.normalized_requirement,
+            "normalized_requirements": [item.normalized_requirement],
+        },
+    )
+
+
+def _merge_job_requirements(
+    job: DataCollectionJob,
+    normalized_requirement: str,
+) -> DataCollectionJob:
+    details = dict(job.details or {})
+    requirements = list(details.get("normalized_requirements") or [])
+    if normalized_requirement not in requirements:
+        requirements.append(normalized_requirement)
+    details["normalized_requirements"] = requirements
+    return DataCollectionJob(
+        id=job.id,
+        exchange=job.exchange,
+        market_type=job.market_type,
+        symbol=job.symbol,
+        event_type=job.event_type,
+        start_ts=job.start_ts,
+        end_ts=job.end_ts,
+        status=job.status,
+        source=job.source,
+        details=details,
     )

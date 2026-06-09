@@ -61,6 +61,7 @@ def test_agent_tools_return_json_ready_payloads() -> None:
         "plan_strategy_validation",
         "check_data_coverage",
         "generate_data_collection_jobs",
+        "plan_data_collection_commands",
     }
 
     result = run_tool("check_guardrail", {"action": "place_order"})
@@ -70,6 +71,62 @@ def test_agent_tools_return_json_ready_payloads() -> None:
     strategies = run_tool("list_strategies")
     assert strategies.ok
     assert len(strategies.payload["strategies"]) == 4
+
+
+def test_plan_data_collection_commands_tool_maps_jobs_to_collector_cli() -> None:
+    result = run_tool(
+        "plan_data_collection_commands",
+        {
+            "current_date": "2026-06-09",
+            "data_lake_root": ".data/lake",
+            "download_dir": "var/downloads",
+            "jobs": [
+                {
+                    "id": "mark-job",
+                    "exchange": "binance",
+                    "market_type": "perp",
+                    "symbol": "BTCUSDT",
+                    "event_type": "mark",
+                    "start_ts": "2026-06-08T00:00:00+00:00",
+                    "end_ts": "2026-06-09T00:00:00+00:00",
+                },
+                {
+                    "id": "oi-old-job",
+                    "exchange": "binance",
+                    "market_type": "perp",
+                    "symbol": "BTCUSDT",
+                    "event_type": "open_interest",
+                    "start_ts": "2024-01-01T00:00:00+00:00",
+                    "end_ts": "2024-01-02T00:00:00+00:00",
+                },
+            ],
+        },
+    )
+
+    assert result.ok
+    plan = result.payload["command_plan"]
+    assert plan["supported_count"] == 1
+    assert plan["blocked_count"] == 1
+    assert plan["commands"][0]["command"] == [
+        "python3",
+        "-m",
+        "apps.collector.main",
+        "historical-mark",
+        "--exchange",
+        "binance",
+        "--market-type",
+        "perp",
+        "--symbol",
+        "BTCUSDT",
+        "--day",
+        "2026-06-08",
+        "--data-lake-root",
+        ".data/lake",
+        "--download-dir",
+        "var/downloads",
+    ]
+    assert plan["commands"][1]["supported"] is False
+    assert "最近约 1 个月" in plan["commands"][1]["reason"]
 
 
 def test_rank_strategy_candidates_tool_prioritizes_validation_ready_candidate() -> None:

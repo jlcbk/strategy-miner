@@ -14,6 +14,7 @@ from packages.agent_interface.validation_plan import (
     plan_strategy_validation,
     validation_planning_contract,
 )
+from packages.data_lake.collection_commands import plan_data_collection_commands
 from packages.data_lake.coverage import check_data_coverage, generate_data_collection_jobs
 from packages.strategies import (
     CrossExchangeSpreadStrategy,
@@ -89,6 +90,20 @@ def available_tools() -> list[dict[str, Any]]:
                     "end_date",
                 ],
                 "optional": ["limit"],
+            },
+        },
+        {
+            "name": "plan_data_collection_commands",
+            "description": "把 ingestion job JSON 转换成 collector CLI 命令或阻塞原因。",
+            "allowed_action": AgentAction.CREATE_STRATEGY_PROPOSAL.value,
+            "input_contract": {
+                "required": ["jobs"],
+                "optional": [
+                    "data_lake_root",
+                    "download_dir",
+                    "python_bin",
+                    "current_date",
+                ],
             },
         },
     ]
@@ -192,6 +207,22 @@ def run_tool(name: str, payload: dict[str, Any] | None = None) -> ToolResult:
         except (KeyError, TypeError, ValueError) as exc:
             return ToolResult(ok=False, payload={}, message=str(exc))
         return ToolResult(ok=True, payload={"job_plan": job_plan.to_dict()})
+    if name == "plan_data_collection_commands":
+        try:
+            raw_jobs = payload["jobs"]
+            if not isinstance(raw_jobs, list):
+                raise ValueError("jobs 必须是数组")
+            current_date = payload.get("current_date")
+            command_plan = plan_data_collection_commands(
+                jobs=raw_jobs,
+                data_lake_root=str(payload.get("data_lake_root", ".data/lake")),
+                download_dir=str(payload.get("download_dir", "var/downloads")),
+                python_bin=str(payload.get("python_bin", "python3")),
+                current_date=None if current_date is None else date.fromisoformat(str(current_date)),
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            return ToolResult(ok=False, payload={}, message=str(exc))
+        return ToolResult(ok=True, payload={"command_plan": command_plan.to_dict()})
     return ToolResult(ok=False, payload={}, message=f"未知工具：{name}")
 
 
