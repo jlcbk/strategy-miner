@@ -136,6 +136,19 @@ class MarketState:
             ),
         )
 
+    def open_interest(self, *, symbol: str | None = None) -> list[MarketEvent]:
+        open_interest = [
+            event
+            for event in self.events
+            if event.event_type == EventType.OPEN_INTEREST
+            and event.market_type == MarketType.PERP
+            and (symbol is None or event.symbol == symbol.upper())
+        ]
+        return _latest_by_key(
+            open_interest,
+            key=lambda event: (event.exchange.value, event.market_type.value, event.symbol),
+        )
+
 
 class StrategyPlugin(Protocol):
     name: str

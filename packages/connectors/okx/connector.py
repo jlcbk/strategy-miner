@@ -2,7 +2,12 @@ from __future__ import annotations
 
 from typing import Iterable
 
-from packages.connectors.base import HistoricalDataRequest, HistoricalFile, WebSocketSubscription
+from packages.connectors.base import (
+    HistoricalDataRequest,
+    HistoricalFile,
+    RestMarketDataEndpoint,
+    WebSocketSubscription,
+)
 from packages.normalization.models import EventType, Exchange, MarketType
 
 
@@ -44,6 +49,23 @@ class OKXConnector:
             url="wss://ws.okx.com:8443/ws/v5/public",
             payload={"op": "subscribe", "args": args},
             stream_names=tuple(f"{item['channel']}:{item['instId']}" for item in args),
+        )
+
+    def open_interest_endpoint(
+        self,
+        *,
+        market_type: MarketType,
+        symbol: str,
+        interval: str = "5m",
+    ) -> RestMarketDataEndpoint:
+        if market_type not in {MarketType.PERP, MarketType.FUTURE}:
+            raise NotImplementedError("OKX open interest 只适用于衍生品市场")
+        instrument_id = _okx_inst_id(symbol, market_type)
+        inst_type = "SWAP" if market_type == MarketType.PERP else "FUTURES"
+        return RestMarketDataEndpoint(
+            url="https://www.okx.com/api/v5/public/open-interest",
+            params={"instType": inst_type, "instId": instrument_id},
+            notes="OKX public open-interest REST",
         )
 
 

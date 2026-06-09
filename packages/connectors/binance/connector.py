@@ -6,6 +6,7 @@ from typing import Iterable
 from packages.connectors.base import (
     HistoricalDataRequest,
     HistoricalFile,
+    RestMarketDataEndpoint,
     WebSocketSubscription,
     csv_rows_from_archive,
 )
@@ -35,7 +36,9 @@ class BinanceConnector:
         elif request.event_type == EventType.MARK:
             path = f"/data/{data_type}/daily/markPriceKlines/{symbol}/1m/{symbol}-1m-{day}.zip"
         else:
-            raise NotImplementedError(f"Binance 归档路径映射暂未支持：{request.event_type.value}")
+            raise NotImplementedError(
+                f"Binance 归档路径映射暂未支持：{request.event_type.value}"
+            )
         return HistoricalFile(request=request, url=f"{self.base_url}{path}", compression="zip")
 
     def parse_trades(self, request: HistoricalDataRequest, raw: bytes) -> list[MarketEvent]:
@@ -95,6 +98,22 @@ class BinanceConnector:
         return WebSocketSubscription(
             url=f"{base}?streams={'/'.join(streams)}",
             stream_names=tuple(streams),
+        )
+
+    def open_interest_endpoint(
+        self,
+        *,
+        market_type: MarketType,
+        symbol: str,
+        interval: str = "5m",
+    ) -> RestMarketDataEndpoint:
+        if market_type not in {MarketType.PERP, MarketType.FUTURE}:
+            raise NotImplementedError("Binance open interest 只适用于衍生品市场")
+        clean_symbol = symbol.replace("-", "").upper()
+        return RestMarketDataEndpoint(
+            url="https://fapi.binance.com/fapi/v1/openInterest",
+            params={"symbol": clean_symbol},
+            notes="当前 open interest；历史序列后续接 /futures/data/openInterestHist",
         )
 
 

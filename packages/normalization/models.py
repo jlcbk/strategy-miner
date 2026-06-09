@@ -25,6 +25,7 @@ class EventType(str, Enum):
     TRADE = "trade"
     ORDERBOOK = "orderbook"
     FUNDING = "funding"
+    OPEN_INTEREST = "open_interest"
     MARK = "mark"
     INDEX = "index"
     INSTRUMENT = "instrument"
@@ -141,8 +142,14 @@ class OrderBookPayload:
     is_snapshot: bool = True
 
     def __post_init__(self) -> None:
-        bids = tuple(level if isinstance(level, PriceLevel) else PriceLevel(*level) for level in self.bids)
-        asks = tuple(level if isinstance(level, PriceLevel) else PriceLevel(*level) for level in self.asks)
+        bids = tuple(
+            level if isinstance(level, PriceLevel) else PriceLevel(*level)
+            for level in self.bids
+        )
+        asks = tuple(
+            level if isinstance(level, PriceLevel) else PriceLevel(*level)
+            for level in self.asks
+        )
         if len(bids) > 20 or len(asks) > 20:
             raise ValueError("OrderBookPayload 最多只保存 top 20 档订单簿")
         object.__setattr__(self, "bids", bids)
@@ -177,6 +184,26 @@ class FundingPayload:
         object.__setattr__(self, "interval_hours", decimalize(self.interval_hours))
         if self.next_funding_ts is not None:
             object.__setattr__(self, "next_funding_ts", ensure_utc(self.next_funding_ts))
+
+    def to_dict(self) -> dict[str, Any]:
+        return _json_safe(asdict(self))
+
+
+@dataclass(frozen=True)
+class OpenInterestPayload:
+    open_interest: Decimal | int | float | str
+    open_interest_value_usd: Decimal | int | float | str | None = None
+    unit: str = "contracts"
+    interval: str | None = None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "open_interest", decimalize(self.open_interest))
+        if self.open_interest_value_usd is not None:
+            object.__setattr__(
+                self,
+                "open_interest_value_usd",
+                decimalize(self.open_interest_value_usd),
+            )
 
     def to_dict(self) -> dict[str, Any]:
         return _json_safe(asdict(self))

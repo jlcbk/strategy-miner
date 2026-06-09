@@ -190,7 +190,7 @@ def test_plan_strategy_validation_marks_derivable_candles_ready_for_fixture() ->
     assert statuses["spot_candles"] == "derivable"
 
 
-def test_plan_strategy_validation_blocks_missing_open_interest_model() -> None:
+def test_plan_strategy_validation_covers_open_interest_model() -> None:
     result = run_tool(
         "plan_strategy_validation",
         {
@@ -203,12 +203,13 @@ def test_plan_strategy_validation_blocks_missing_open_interest_model() -> None:
 
     assert result.ok
     plan = result.payload["validation_plan"]
-    assert plan["readiness"] == "blocked_missing_data_model"
-    missing = [
+    assert plan["readiness"] == "ready_for_fixture"
+    open_interest = [
         item for item in plan["requirement_plans"]
         if item["normalized_requirement"] == "open_interest"
     ]
-    assert missing[0]["status"] == "unsupported"
+    assert open_interest[0]["status"] == "covered"
+    assert open_interest[0]["event_types"] == ["open_interest"]
 
 
 def test_plan_strategy_validation_requires_orderbook_collection_policy() -> None:

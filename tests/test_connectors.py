@@ -18,7 +18,10 @@ def test_binance_public_trade_archive_url() -> None:
     )
     file = BinanceConnector().historical_file(request)
 
-    assert file.url == "https://data.binance.vision/data/spot/daily/trades/BTCUSDT/BTCUSDT-trades-2024-01-02.zip"
+    assert file.url == (
+        "https://data.binance.vision/data/spot/daily/trades/"
+        "BTCUSDT/BTCUSDT-trades-2024-01-02.zip"
+    )
     assert file.compression == "zip"
 
 
@@ -57,3 +60,31 @@ def test_websocket_subscriptions_cover_core_event_types() -> None:
         event_types=[EventType.ORDERBOOK],
     )
     assert bitget.payload["args"][0]["channel"] == "books20"
+
+
+def test_open_interest_rest_endpoints_cover_core_derivatives_exchanges() -> None:
+    binance = BinanceConnector().open_interest_endpoint(
+        market_type=MarketType.PERP,
+        symbol="BTCUSDT",
+    )
+    assert binance.url == "https://fapi.binance.com/fapi/v1/openInterest"
+    assert binance.params == {"symbol": "BTCUSDT"}
+
+    bybit = BybitConnector().open_interest_endpoint(
+        market_type=MarketType.PERP,
+        symbol="BTCUSDT",
+    )
+    assert bybit.params["category"] == "linear"
+    assert bybit.params["intervalTime"] == "5min"
+
+    okx = OKXConnector().open_interest_endpoint(
+        market_type=MarketType.PERP,
+        symbol="BTCUSDT",
+    )
+    assert okx.params == {"instType": "SWAP", "instId": "BTC-USDT-SWAP"}
+
+    bitget = BitgetConnector().open_interest_endpoint(
+        market_type=MarketType.PERP,
+        symbol="BTCUSDT",
+    )
+    assert bitget.params == {"symbol": "BTCUSDT", "productType": "USDT-FUTURES"}

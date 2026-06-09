@@ -203,6 +203,10 @@ def _dedupe(values: list[str]) -> list[str]:
 
 _COVERED_REQUIREMENTS: dict[str, tuple[list[str], list[str]]] = {
     "funding": (["funding"], ["EventType.FUNDING 已建模，主流 perp websocket 已有边界"]),
+    "open_interest": (
+        ["open_interest"],
+        ["EventType.OPEN_INTEREST 已建模，四家交易所有 REST 采集边界"],
+    ),
     "mark_price": (["mark"], ["EventType.MARK 已建模"]),
     "index_price": (["index"], ["EventType.INDEX 已建模"]),
     "mark_index_price": (["mark", "index"], ["mark 和 index 均已建模"]),

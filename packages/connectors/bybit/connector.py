@@ -5,10 +5,18 @@ from typing import Iterable
 from packages.connectors.base import (
     HistoricalDataRequest,
     HistoricalFile,
+    RestMarketDataEndpoint,
     WebSocketSubscription,
     csv_rows_from_archive,
 )
-from packages.normalization.models import EventType, Exchange, MarketEvent, MarketType, TradePayload, utc_now
+from packages.normalization.models import (
+    EventType,
+    Exchange,
+    MarketEvent,
+    MarketType,
+    TradePayload,
+    utc_now,
+)
 from packages.normalization.symbols import normalize_symbol
 
 
@@ -82,4 +90,21 @@ class BybitConnector:
             url=f"wss://stream.bybit.com/v5/public/{category}",
             payload={"op": "subscribe", "args": topics},
             stream_names=tuple(topics),
+        )
+
+    def open_interest_endpoint(
+        self,
+        *,
+        market_type: MarketType,
+        symbol: str,
+        interval: str = "5min",
+    ) -> RestMarketDataEndpoint:
+        if market_type not in {MarketType.PERP, MarketType.FUTURE}:
+            raise NotImplementedError("Bybit open interest 只适用于衍生品市场")
+        category = "linear" if market_type in {MarketType.PERP, MarketType.FUTURE} else "spot"
+        clean_symbol = symbol.replace("-", "").upper()
+        return RestMarketDataEndpoint(
+            url="https://api.bybit.com/v5/market/open-interest",
+            params={"category": category, "symbol": clean_symbol, "intervalTime": interval},
+            notes="V5 market open-interest REST；ticker websocket 可作为实时补充源",
         )

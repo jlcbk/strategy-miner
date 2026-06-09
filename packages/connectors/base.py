@@ -37,6 +37,14 @@ class WebSocketSubscription:
     stream_names: tuple[str, ...] = ()
 
 
+@dataclass(frozen=True)
+class RestMarketDataEndpoint:
+    url: str
+    params: dict[str, str]
+    method: str = "GET"
+    notes: str = ""
+
+
 class PublicDataConnector(Protocol):
     exchange: Exchange
 
@@ -54,6 +62,15 @@ class PublicDataConnector(Protocol):
         event_types: Iterable[EventType],
         depth: int = 20,
     ) -> WebSocketSubscription:
+        ...
+
+    def open_interest_endpoint(
+        self,
+        *,
+        market_type: MarketType,
+        symbol: str,
+        interval: str = "5min",
+    ) -> RestMarketDataEndpoint:
         ...
 
 

@@ -2,7 +2,12 @@ from __future__ import annotations
 
 from typing import Iterable
 
-from packages.connectors.base import HistoricalDataRequest, HistoricalFile, WebSocketSubscription
+from packages.connectors.base import (
+    HistoricalDataRequest,
+    HistoricalFile,
+    RestMarketDataEndpoint,
+    WebSocketSubscription,
+)
 from packages.normalization.models import EventType, Exchange, MarketType
 
 
@@ -13,7 +18,7 @@ class BitgetConnector:
     def historical_file(self, request: HistoricalDataRequest) -> HistoricalFile:
         raise NotImplementedError(
             "Bitget 下载链接需要从官方 data-download 页面选择；"
-            "请先为选定的现货/合约 K 线、成交或深度数据集接入精确文件 URL。"
+            "请先为选定的数据集接入精确文件 URL。"
         )
 
     def parse_trades(self, request: HistoricalDataRequest, raw: bytes):
@@ -46,4 +51,21 @@ class BitgetConnector:
             url="wss://ws.bitget.com/v2/ws/public",
             payload={"op": "subscribe", "args": args},
             stream_names=tuple(f"{item['channel']}:{item['instId']}" for item in args),
+        )
+
+    def open_interest_endpoint(
+        self,
+        *,
+        market_type: MarketType,
+        symbol: str,
+        interval: str = "5m",
+    ) -> RestMarketDataEndpoint:
+        if market_type not in {MarketType.PERP, MarketType.FUTURE}:
+            raise NotImplementedError("Bitget open interest 只适用于衍生品市场")
+        product_type = "USDT-FUTURES"
+        inst_id = symbol.upper().replace("-", "")
+        return RestMarketDataEndpoint(
+            url="https://api.bitget.com/api/v2/mix/market/open-interest",
+            params={"symbol": inst_id, "productType": product_type},
+            notes="Bitget contract market open-interest REST",
         )
