@@ -14,7 +14,14 @@ from packages.connectors.base import (
 from packages.connectors.binance import BinanceConnector
 from packages.connectors.bybit import BybitConnector
 from packages.data_lake.store import DataLakeWriter
-from packages.normalization.models import EventType, Exchange, MarketType
+from packages.normalization.models import (
+    EventType,
+    Exchange,
+    FeeSchedule,
+    MarketEvent,
+    MarketType,
+)
+from packages.normalization.symbols import normalize_symbol
 
 
 CONNECTORS = {
@@ -197,6 +204,39 @@ def ingest_funding(
     return DataLakeWriter(data_lake_root).write_events(events)
 
 
+def ingest_fee_assumption(
+    *,
+    exchange: Exchange,
+    market_type: MarketType,
+    symbol: str,
+    day: date,
+    data_lake_root: Path,
+    maker_bps: str,
+    taker_bps: str,
+    tier: str = "manual_assumption",
+) -> list[Path]:
+    normalized = normalize_symbol(exchange, symbol, market_type)
+    event_ts = datetime.combine(day, time.min, tzinfo=timezone.utc)
+    event = MarketEvent(
+        exchange=exchange,
+        market_type=market_type,
+        symbol=normalized.symbol,
+        base_asset=normalized.base_asset,
+        quote_asset=normalized.quote_asset,
+        event_type=EventType.FEE,
+        exchange_ts=event_ts,
+        local_ts=datetime.now(timezone.utc),
+        source="manual_fee_assumption",
+        sequence_id=f"{symbol.upper()}:{day.isoformat()}:{tier}",
+        payload=FeeSchedule(
+            maker_bps=maker_bps,
+            taker_bps=taker_bps,
+            tier=tier,
+        ),
+    )
+    return DataLakeWriter(data_lake_root).write_events([event])
+
+
 def ingest_orderbook_snapshot(
     *,
     exchange: Exchange,
@@ -257,6 +297,7 @@ def main(argv: list[str] | None = None) -> int:
             "historical-index",
             "open-interest",
             "funding",
+            "fee-assumption",
             "orderbook-snapshot",
             "instrument-snapshot",
             "show-ws",
@@ -270,6 +311,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--data-lake-root", default="var/market-data")
     parser.add_argument("--interval", default="5m")
     parser.add_argument("--limit", type=int, default=500)
+    parser.add_argument("--maker-bps", default="10")
+    parser.add_argument("--taker-bps", default="10")
+    parser.add_argument("--fee-tier", default="manual_assumption")
     args = parser.parse_args(argv)
 
     exchange = Exchange(args.exchange)
@@ -307,6 +351,21 @@ def main(argv: list[str] | None = None) -> int:
             day=date.fromisoformat(args.day),
             data_lake_root=Path(args.data_lake_root),
             limit=args.limit,
+        )
+        for path in written:
+            print(path)
+        return 0
+
+    if args.command == "fee-assumption":
+        written = ingest_fee_assumption(
+            exchange=exchange,
+            market_type=market_type,
+            symbol=args.symbol,
+            day=date.fromisoformat(args.day),
+            data_lake_root=Path(args.data_lake_root),
+            maker_bps=args.maker_bps,
+            taker_bps=args.taker_bps,
+            tier=args.fee_tier,
         )
         for path in written:
             print(path)

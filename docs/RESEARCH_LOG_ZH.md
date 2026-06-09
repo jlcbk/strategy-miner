@@ -216,3 +216,22 @@
 ### 对策略状态的影响
 
 #4 的 `mark_index_price` collector 阻塞被部分解除：Binance `mark` 和 `index` 都已有采集入口。#4 仍保持 `strategy:blocked-data`，因为目标窗口还缺 fee、trade、orderbook 等分区，并且本机访问 Binance REST 仍受限。
+
+## 2026-06-09：fee assumption collector
+
+本轮新增 `fee-assumption` collector，用于把手续费从隐含参数变成显式 data lake 分区。
+
+### 能力边界
+
+- 新命令：`python3 -m apps.collector.main fee-assumption --exchange binance --market-type perp --symbol BTCUSDT --day 2026-06-08 --data-lake-root .data/lake --maker-bps 10 --taker-bps 10 --fee-tier conservative_manual`
+- 写入统一 `EventType.FEE` 分区，payload 为 `FeeSchedule`。
+- source 固定为 `manual_fee_assumption`。
+- 命令不访问网络，风险等级为 `low`。
+
+### 设计约束
+
+真实手续费依赖账户等级、交易所、产品、maker/taker 和活动规则。当前 collector 不声称抓取官方真实账户费率，只用于回放阶段显式记录扣费假设。进入人工审核前，应替换为真实费率表或账户级费率来源。
+
+### 对策略状态的影响
+
+#1、#2、#4 的 fee 分区可以先用保守假设补齐，减少“成本项不明确”的问题。相关策略仍保持 `strategy:blocked-data`，因为还缺其他行情分区或真实数据运行环境。

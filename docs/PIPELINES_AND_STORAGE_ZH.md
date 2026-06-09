@@ -139,6 +139,7 @@ python3 -m apps.cli.main run-tool plan_data_collection_commands --payload-json '
 - Binance `mark` -> `historical-mark`
 - Binance `index` -> `historical-index`
 - Binance `funding` -> `funding`
+- Binance `fee` -> `fee-assumption`，写入显式手工费率假设，不代表交易所官方账户费率
 - Binance `open_interest` -> `open-interest`，但官方历史 REST 只支持最近约 1 个月
 - Binance `orderbook` -> `orderbook-snapshot`，只支持当前盘口快照，不能回补历史分区
 - Binance `instrument` -> `instrument-snapshot`，只支持当前交易规则快照，不能回补历史分区
@@ -150,7 +151,7 @@ python3 -m apps.cli.main run-tool plan_data_collection_commands --payload-json '
 
 命令规划会给每个 job 标注执行风险：
 
-- `low`：小 REST 数据，例如 `funding`、`open_interest`、`instrument-snapshot`
+- `low`：小 REST 数据或本地假设，例如 `funding`、`open_interest`、`instrument-snapshot`、`fee-assumption`
 - `medium`：中等归档数据，例如 1m `mark`
 - `high`：大归档数据或高频热数据入口，例如逐笔 `trade`、`orderbook-snapshot`，默认需要人工确认后再执行
 

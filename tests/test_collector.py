@@ -84,6 +84,30 @@ def test_ingest_funding_writes_data_lake_partition(tmp_path, monkeypatch) -> Non
     assert "event_type=funding" in written[0].parts
 
 
+def test_ingest_fee_assumption_writes_data_lake_partition(tmp_path) -> None:
+    written = collector_main.ingest_fee_assumption(
+        exchange=Exchange.BINANCE,
+        market_type=MarketType.PERP,
+        symbol="BTCUSDT",
+        day=date(2024, 1, 1),
+        data_lake_root=tmp_path,
+        maker_bps="10",
+        taker_bps="10",
+        tier="conservative_manual",
+    )
+
+    assert len(written) == 1
+    assert written[0].exists()
+    assert "exchange=binance" in written[0].parts
+    assert "date=2024-01-01" in written[0].parts
+    assert "market_type=perp" in written[0].parts
+    assert "symbol=BTC-USDT" in written[0].parts
+    assert "event_type=fee" in written[0].parts
+    content = written[0].read_text(encoding="utf-8")
+    assert "manual_fee_assumption" in content
+    assert "conservative_manual" in content
+
+
 def test_ingest_historical_mark_writes_data_lake_partition(tmp_path, monkeypatch) -> None:
     def fake_download_file(file, target_dir):
         assert file.request.event_type.value == "mark"

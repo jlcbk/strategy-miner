@@ -140,6 +140,17 @@ def _command_for_job(
         command.extend(["--download-dir", download_dir])
     if event_type == "index":
         command.extend(["--interval", "1m", "--limit", "1500"])
+    if event_type == "fee":
+        command.extend(
+            [
+                "--maker-bps",
+                "10",
+                "--taker-bps",
+                "10",
+                "--fee-tier",
+                "conservative_manual",
+            ]
+        )
     if event_type == "orderbook":
         command.extend(["--limit", "20"])
     return CollectorCommand(
@@ -182,7 +193,7 @@ def _unsupported_reason(
         return f"{exchange} instrument snapshot collector 尚未接入"
     if event_type == "instrument":
         return ""
-    if event_type not in {"trade", "mark", "index", "funding", "open_interest"}:
+    if event_type not in {"trade", "mark", "index", "funding", "open_interest", "fee"}:
         return f"collector 暂未支持事件类型：{event_type}"
     if event_type in {"mark", "index", "funding", "open_interest"} and market_type not in {
         "perp",
@@ -205,13 +216,14 @@ def _collector_subcommand(event_type: str) -> str:
         "index": "historical-index",
         "funding": "funding",
         "open_interest": "open-interest",
+        "fee": "fee-assumption",
         "orderbook": "orderbook-snapshot",
         "instrument": "instrument-snapshot",
     }[event_type]
 
 
 def _risk_tier(event_type: str) -> str:
-    if event_type in {"funding", "open_interest", "instrument"}:
+    if event_type in {"funding", "open_interest", "instrument", "fee"}:
         return "low"
     if event_type in {"mark", "index"}:
         return "medium"
@@ -227,6 +239,7 @@ def _requires_confirmation(risk_tier: str) -> bool:
 def _execution_group(event_type: str) -> str:
     return {
         "funding": "small_rest",
+        "fee": "manual_assumption",
         "open_interest": "small_rest",
         "mark": "archive_mark",
         "index": "archive_index",
