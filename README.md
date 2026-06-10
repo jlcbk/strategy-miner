@@ -66,6 +66,18 @@ python -m apps.cli.main run-tool check_guardrail --payload-json '{"action":"plac
 python -m apps.cli.main run-tool rank_strategy_candidates --payload-json '<strategy-candidates-json>'
 ```
 
+Windows 本地数据层和验证层 MVP：
+
+```powershell
+python -m apps.local_pipeline.main seed-fixture --fixture funding-carry --data-lake-root .data/lake
+python -m apps.local_pipeline.main daily-ingest --config configs/local_windows_data.example.toml --output var/plans/daily_ingest.json
+python -m apps.local_pipeline.main plan --proposal artifacts/strategies/funding_carry_vol_filter/strategy_proposal.json --data-lake-root .data/lake --download-dir var/downloads --exchanges binance --market-types spot,perp --symbols BTCUSDT --start-date 2026-06-08 --end-date 2026-06-08 --output var/plans/funding_carry_btc.json
+python -m apps.local_pipeline.main collect --plan-json var/plans/funding_carry_btc.json --state-json .data/jobs/jobs.json --output var/reports/funding_carry_collect.json
+python -m apps.local_pipeline.main validate --data-lake-root .data/lake --strategy funding_carry_vol_filter --exchange binance --symbol BTC-USDT --output var/reports/funding_carry_validation.json
+```
+
+详见 [docs/WINDOWS_LOCAL_PIPELINE_ZH.md](docs/WINDOWS_LOCAL_PIPELINE_ZH.md)。
+
 第一版的 API 和控制台刻意保持轻量。核心行为都在可导入的 Python 包和 JSON CLI 中，方便外部 agent 在人工审核前，为新连接器、新策略插件和 worker 任务补代码、跑测试、跑回放并生成报告。
 
 ## Claude Code 使用说明

@@ -1,0 +1,15 @@
+# Copy this file to configs/local_windows_data.toml and adjust paths/scope.
+
+data_lake_root = ".data/lake"
+download_dir = "var/downloads"
+proposal = "artifacts/strategies/funding_carry_vol_filter/strategy_proposal.json"
+
+exchanges = ["binance"]
+market_types = ["spot", "perp"]
+symbols = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
+
+# Daily ingest plans yesterday by default when lookback_days = 1.
+lookback_days = 1
+
+# Local data lake retention window.
+retention_days = 180
