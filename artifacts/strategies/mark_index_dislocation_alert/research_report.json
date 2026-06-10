@@ -1,0 +1,46 @@
+{
+  "kind": "research_report",
+  "title": "Mark/index dislocation alert research report",
+  "created_by": "codex",
+  "created_at": "2026-06-10T00:00:00+00:00",
+  "summary": "Perpetual futures use mark price and index price mechanics for risk and liquidation accounting. A persistent or rapidly expanding mark/index dislocation can identify exchange-specific stress, forced positioning or data quality risk. The strategy should start as an alert and risk filter for carry, premium and momentum candidates rather than an execution signal.",
+  "source_urls": [
+    "https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Mark-Price",
+    "https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Index-Price-Kline-Candlestick-Data",
+    "https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Mark-Price-Kline-Candlestick-Data"
+  ],
+  "claims": [
+    "Mark price and index price are separate market data surfaces, so dislocation can be measured directly without relying only on trade-derived candles.",
+    "Dislocation is more useful as a stress and quality filter than as a standalone trade, because adverse selection and liquidation mechanics can dominate short windows.",
+    "The signal can improve existing funding, basis, OI momentum and premium z-score candidates by suppressing entries during abnormal mark/index divergence."
+  ],
+  "formulas": [
+    "dislocation_bps = 10000 * (mark_price - index_price) / index_price",
+    "dislocation_zscore = (dislocation_bps - rolling_mean(dislocation_bps, lookback)) / rolling_std(dislocation_bps, lookback)",
+    "compression_flag = abs(dislocation_bps_t) < abs(dislocation_bps_t_minus_1) after abs(dislocation_zscore) exceeds threshold"
+  ],
+  "cost_items": [
+    "No direct execution cost when used as alert or filter.",
+    "If later used for directional entry, include taker fee, slippage, funding paid during holding period and opportunity cost from filtered trades.",
+    "False positives can suppress otherwise valid carry or momentum candidates."
+  ],
+  "failure_modes": [
+    "Dislocation reflects real exchange stress rather than a reversible pricing error.",
+    "Index price source or mark calculation changes across exchanges create non-comparable signals.",
+    "Extreme windows have poor fill quality and larger slippage than replay assumptions.",
+    "Thresholds overfit one liquidation event or one venue's mark-price behavior."
+  ],
+  "required_data": [
+    "mark_index_price",
+    "perp_candles",
+    "trades",
+    "funding",
+    "fees",
+    "instrument_metadata"
+  ],
+  "evidence_notes": [
+    "Operator fit: high as an alert or risk filter; low as a standalone automated entry signal until execution quality is proven.",
+    "Data boundary: Binance exposes mark price, mark price kline and index price kline endpoints; other exchanges need venue-specific mapping before cross-exchange comparison.",
+    "Safety boundary: this artifact does not permit live trading, production config changes or auto-deployment."
+  ]
+}

@@ -1,0 +1,69 @@
+{
+  "kind": "strategy_proposal",
+  "title": "Funding squeeze unwind signal",
+  "created_by": "codex",
+  "created_at": "2026-06-10T00:00:00+00:00",
+  "strategy_name": "funding_squeeze_unwind_signal",
+  "hypothesis": "When funding is extreme, open interest has recently expanded and price no longer confirms the crowded direction, subsequent OI contraction or funding normalization may mark a squeeze-unwind window. The first implementation should generate alerts and block late crowded entries rather than automatically taking contrarian trades.",
+  "evaluator_contract": {
+    "inputs": [
+      "funding rates aligned to funding intervals",
+      "open interest series with fixed venue definition",
+      "mark price or perp candles for price continuation and stall detection",
+      "trade-derived volume for liquidity sanity checks",
+      "fee and slippage assumptions"
+    ],
+    "outputs": [
+      "symbol",
+      "exchange",
+      "crowded_direction",
+      "funding_percentile",
+      "oi_change_pct",
+      "price_continuation_bps",
+      "unwind_alert",
+      "late_entry_filter_decision"
+    ],
+    "entry_rules": [
+      "abs(funding_rate) is above configured rolling percentile or absolute threshold",
+      "open interest increased during the prior confirmation window",
+      "price continuation in the crowded direction stalls or reverses below threshold",
+      "trade volume confirms the window is not illiquid noise",
+      "signal is emitted as alert or filter by default"
+    ],
+    "exit_rules": [
+      "funding normalizes below exit percentile",
+      "open interest contraction completes or reverses",
+      "maximum alert horizon expires",
+      "price breaks out again in the crowded direction",
+      "manual review rejects current venue data quality"
+    ]
+  },
+  "data_requirements": [
+    "funding",
+    "open_interest",
+    "mark_price",
+    "perp_candles",
+    "trades",
+    "fees"
+  ],
+  "test_plan": [
+    "Use BTCUSDT, ETHUSDT and SOLUSDT perps with fixed exchange-specific OI definitions.",
+    "Label funding percentile, OI change and price continuation over 15m, 1h and funding-interval windows.",
+    "Compare late-entry filter behavior for oi_confirmed_momentum and funding_carry_vol_filter candidates.",
+    "Measure forward returns after crowded continuation, stall and unwind states separately.",
+    "Apply conservative fee and slippage assumptions to any simulated contrarian entry variant.",
+    "Keep standalone execution disabled unless replay proves stability across multiple symbols and months."
+  ],
+  "risk_controls": [
+    "Default output is alert or late-entry block, not automatic contrarian entry.",
+    "Do not mix OI definitions across exchanges without explicit venue mapping.",
+    "Disable signal during exchange outage, abnormal funding calculation or stale OI data.",
+    "No high leverage, no martingale and no repeated entries during squeeze windows.",
+    "No production config changes or live trading actions."
+  ],
+  "candidate_files": [
+    "artifacts/strategies/funding_squeeze_unwind_signal/research_report.json",
+    "artifacts/strategies/funding_squeeze_unwind_signal/strategy_proposal.json",
+    "artifacts/strategies/funding_squeeze_unwind_signal/opportunity_report.json"
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "kind": "strategy_proposal",
+  "title": "Realized volatility breakout filter",
+  "created_by": "codex",
+  "created_at": "2026-06-10T00:00:00+00:00",
+  "strategy_name": "realized_volatility_breakout_filter",
+  "hypothesis": "A transition from compressed realized volatility to expanding realized volatility can improve strategy selection: carry and basis candidates should be down-ranked during stress transitions, while momentum alerts may receive higher priority when expansion is confirmed by volume.",
+  "evaluator_contract": {
+    "inputs": [
+      "spot and perp candles or trade-derived bars",
+      "mark price series for perp stress checks",
+      "trade volume or trade count for confirmation",
+      "base strategy candidates to be filtered",
+      "fee and turnover assumptions for opportunity-cost accounting"
+    ],
+    "outputs": [
+      "symbol",
+      "market_type",
+      "realized_vol_bps",
+      "vol_regime",
+      "vol_breakout_flag",
+      "base_strategy_filter_decision",
+      "opportunity_cost_estimate"
+    ],
+    "entry_rules": [
+      "realized volatility was below low percentile over the compression lookback",
+      "realized volatility crosses high percentile or absolute threshold over breakout window",
+      "volume or trade count confirms participation is not stale data",
+      "carry and basis candidates are down-ranked during fresh breakout state",
+      "momentum candidates are only up-ranked when direction and volume confirm"
+    ],
+    "exit_rules": [
+      "realized volatility returns to neutral band",
+      "maximum filter duration expires",
+      "volume confirmation disappears",
+      "base strategy risk controls override filter output",
+      "manual review rejects current market state"
+    ]
+  },
+  "data_requirements": [
+    "spot_candles",
+    "perp_candles",
+    "trades",
+    "mark_price",
+    "fees"
+  ],
+  "test_plan": [
+    "Build 1m, 5m and 1h realized volatility features from BTCUSDT, ETHUSDT and SOLUSDT spot/perp data.",
+    "Test low-vol compression followed by high-vol breakout across 1d, 3d and 7d rolling percentiles.",
+    "Apply the filter to funding_carry_vol_filter, quarterly_basis_convergence and oi_confirmed_momentum fixture outputs.",
+    "Track avoided drawdown, missed opportunity and net edge after costs separately.",
+    "Run walk-forward threshold checks across symbols and months.",
+    "Keep the strategy as a filter until it improves at least one existing evaluator after opportunity cost."
+  ],
+  "risk_controls": [
+    "Default output is filter decision, not standalone trade.",
+    "Do not use volatility expansion as permission for high leverage.",
+    "Require volume confirmation and fresh data for breakout state.",
+    "Measure missed profitable trades as an explicit cost of the filter.",
+    "No production config changes, auto-deployment or live trading."
+  ],
+  "candidate_files": [
+    "artifacts/strategies/realized_volatility_breakout_filter/research_report.json",
+    "artifacts/strategies/realized_volatility_breakout_filter/strategy_proposal.json",
+    "artifacts/strategies/realized_volatility_breakout_filter/opportunity_report.json"
+  ]
+}

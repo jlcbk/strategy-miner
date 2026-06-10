@@ -143,6 +143,97 @@
       },
       "operator_fit": "Medium priority only as alert plus manual confirmation; spot-only, no leverage, but issuer/redemption risk must be reviewed by a human.",
       "next_action": "Fill manual_stablecoin_status_checklist for the reviewed asset, venue and time window before any validation-ready promotion."
+    },
+    {
+      "issue_number": 7,
+      "issue_url": "https://github.com/jlcbk/strategy-miner/issues/7",
+      "strategy_name": "perp_premium_zscore_mean_reversion",
+      "theme": "theme:funding",
+      "issue_status": "strategy:blocked-data",
+      "recommended_status": "needs_human_review",
+      "funnel_score": "67.00",
+      "artifact_root": "artifacts/strategies/perp_premium_zscore_mean_reversion",
+      "has_evaluator": false,
+      "opportunity_report_type": "blocked_data_fixture",
+      "opportunity_count": 0,
+      "coverage": {
+        "ready": false,
+        "coverage_ratio": "0.00",
+        "covered_count": 0,
+        "required_count": 21,
+        "unsupported_requirements": [
+          "premium_index_kline"
+        ],
+        "scope": "Binance BTC/ETH/SOL USDT perp, 2026-06-08"
+      },
+      "operator_fit": "Medium priority: minute-to-hour perp signal/filter, no cross-exchange transfer, but mean-reversion failure and threshold overfit risk require human review.",
+      "next_action": "Add premium_index_kline data model, Binance connector mapping and coverage checks; then backfill funding, mark/index, trade-derived perp candles, fees and instrument metadata before validation-ready."
+    },
+    {
+      "issue_number": null,
+      "issue_url": null,
+      "strategy_name": "mark_index_dislocation_alert",
+      "theme": "theme:market-structure",
+      "issue_status": "strategy:blocked-data",
+      "recommended_status": "proposed",
+      "funnel_score": "80.00",
+      "artifact_root": "artifacts/strategies/mark_index_dislocation_alert",
+      "has_evaluator": false,
+      "opportunity_report_type": "blocked_data_fixture",
+      "opportunity_count": 0,
+      "coverage": {
+        "ready": false,
+        "coverage_ratio": "0.00",
+        "covered_count": 0,
+        "required_count": 18,
+        "scope": "Binance BTC/ETH/SOL USDT perp, 2026-06-08"
+      },
+      "operator_fit": "High priority as alert and risk filter for funding, premium and momentum candidates; not a standalone automated entry signal.",
+      "next_action": "Generate a data collection plan for mark/index, perp candles, trade, funding, fees and instrument metadata; then test whether dislocation filters improve existing evaluators."
+    },
+    {
+      "issue_number": null,
+      "issue_url": null,
+      "strategy_name": "funding_squeeze_unwind_signal",
+      "theme": "theme:funding",
+      "issue_status": "strategy:blocked-data",
+      "recommended_status": "proposed",
+      "funnel_score": "73.00",
+      "artifact_root": "artifacts/strategies/funding_squeeze_unwind_signal",
+      "has_evaluator": false,
+      "opportunity_report_type": "blocked_data_fixture",
+      "opportunity_count": 0,
+      "coverage": {
+        "ready": false,
+        "coverage_ratio": "0.00",
+        "covered_count": 0,
+        "required_count": 18,
+        "scope": "Binance BTC/ETH/SOL USDT perp, 2026-06-08"
+      },
+      "operator_fit": "Medium-high priority as crowded-positioning alert and late-entry filter; standalone contrarian execution needs human review and replay evidence.",
+      "next_action": "Backfill funding, open_interest, mark, trade-derived perp candles and fee partitions; keep venue-specific OI definitions fixed before comparing exchanges."
+    },
+    {
+      "issue_number": null,
+      "issue_url": null,
+      "strategy_name": "realized_volatility_breakout_filter",
+      "theme": "theme:volatility",
+      "issue_status": "strategy:blocked-data",
+      "recommended_status": "proposed",
+      "funnel_score": "83.00",
+      "artifact_root": "artifacts/strategies/realized_volatility_breakout_filter",
+      "has_evaluator": false,
+      "opportunity_report_type": "blocked_data_fixture",
+      "opportunity_count": 0,
+      "coverage": {
+        "ready": false,
+        "coverage_ratio": "0.00",
+        "covered_count": 0,
+        "required_count": 15,
+        "scope": "Binance BTC/ETH/SOL spot+perp, 2026-06-08"
+      },
+      "operator_fit": "High priority as portfolio-level filter for minute-to-day strategies; use to down-rank carry and basis during volatility expansion.",
+      "next_action": "Generate a data collection plan for spot/perp candles, trades, mark and fees; then test avoided drawdown versus missed opportunity on existing strategy fixtures."
     }
   ]
 }

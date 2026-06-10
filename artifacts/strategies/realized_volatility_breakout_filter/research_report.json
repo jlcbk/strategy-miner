@@ -1,0 +1,45 @@
+{
+  "kind": "research_report",
+  "title": "Realized volatility breakout filter research report",
+  "created_by": "codex",
+  "created_at": "2026-06-10T00:00:00+00:00",
+  "summary": "Realized volatility regime changes can be used as a portfolio-level filter for existing carry, basis and momentum candidates. The goal is not to trade volatility directly, but to identify transitions from compressed to expanding realized volatility that make carry and mean-reversion signals less reliable and momentum alerts more relevant.",
+  "source_urls": [
+    "https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Kline-Candlestick-Data",
+    "https://developers.binance.com/docs/binance-spot-api-docs/rest-api/market-data-endpoints#klinecandlestick-data",
+    "https://bybit-exchange.github.io/docs/v5/market/kline"
+  ],
+  "claims": [
+    "Trade-derived or exchange kline data can produce replayable realized volatility features without requiring orderbook depth.",
+    "Volatility expansion after compression should be tested as an enable or disable filter for existing strategies before being treated as standalone alpha.",
+    "Regime filters can reduce false positives in carry, basis and mean-reversion candidates if they are evaluated by opportunity cost as well as avoided drawdown."
+  ],
+  "formulas": [
+    "realized_vol_bps = 10000 * sqrt(sum(log_return_i^2)) over window",
+    "vol_compression = realized_vol_bps <= rolling_percentile(realized_vol_bps, low_p)",
+    "vol_breakout = realized_vol_bps >= rolling_percentile(realized_vol_bps, high_p) after compression state"
+  ],
+  "cost_items": [
+    "No direct execution cost when used as filter.",
+    "Opportunity cost from suppressing valid signals during false volatility breakouts.",
+    "If used as standalone momentum entry, include taker fee, slippage and turnover."
+  ],
+  "failure_modes": [
+    "Volatility breakout is backward-looking and fires after most of the move has occurred.",
+    "Thresholds overfit one symbol or market regime.",
+    "Filtering reduces drawdown but removes too many profitable carry or basis windows.",
+    "Spot and perp candle sources diverge during stress windows."
+  ],
+  "required_data": [
+    "spot_candles",
+    "perp_candles",
+    "trades",
+    "mark_price",
+    "fees"
+  ],
+  "evidence_notes": [
+    "Operator fit: high as a broad filter for minute-to-day workflows; lower as a standalone strategy.",
+    "Data boundary: candles can be derived from trade partitions, but venue-provided klines need separate source-quality checks if added later.",
+    "Safety boundary: use as replayable filter and alert only until validated across symbols, windows and strategy families."
+  ]
+}

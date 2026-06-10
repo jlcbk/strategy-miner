@@ -1,0 +1,68 @@
+{
+  "kind": "strategy_proposal",
+  "title": "Mark/index dislocation alert",
+  "created_by": "codex",
+  "created_at": "2026-06-10T00:00:00+00:00",
+  "strategy_name": "mark_index_dislocation_alert",
+  "hypothesis": "When a high-liquidity perpetual future's mark price diverges from its index price beyond a rolling threshold, the window may identify liquidation stress, exchange-specific pricing risk or a later compression alert. The first implementation should only filter and annotate existing candidates rather than trigger standalone entries.",
+  "evaluator_contract": {
+    "inputs": [
+      "mark and index price series aligned to 1m or 5m bars",
+      "perp candles or trade-derived bars for forward return labeling",
+      "funding rates near the dislocation window",
+      "fee schedule and instrument metadata",
+      "optional base strategy signal to be filtered"
+    ],
+    "outputs": [
+      "symbol",
+      "exchange",
+      "dislocation_bps",
+      "dislocation_zscore",
+      "compression_flag",
+      "base_strategy_filter_decision",
+      "risk flags"
+    ],
+    "entry_rules": [
+      "abs(dislocation_zscore) exceeds configured threshold over the lookback window",
+      "mark and index observations are fresh and aligned",
+      "perp trade-derived bars confirm the window is not a single bad print",
+      "signal is used to warn, block or down-rank existing candidates by default",
+      "standalone entry remains disabled until replay proves cost-adjusted benefit"
+    ],
+    "exit_rules": [
+      "abs(dislocation_bps) returns inside neutral band",
+      "maximum alert horizon expires",
+      "mark or index feed becomes stale",
+      "exchange reports abnormal market or instrument status",
+      "manual review rejects the venue or symbol for this window"
+    ]
+  },
+  "data_requirements": [
+    "mark_index_price",
+    "perp_candles",
+    "trades",
+    "funding",
+    "fees",
+    "instrument_metadata"
+  ],
+  "test_plan": [
+    "Start with Binance BTCUSDT, ETHUSDT and SOLUSDT USDT perpetuals using 1m mark and index price windows.",
+    "Compute dislocation_bps and rolling z-score over 1d, 3d and 7d lookbacks.",
+    "Compare forward 5m, 15m and 1h returns after expansion, compression and neutral windows.",
+    "Use the signal as a filter for funding_carry_vol_filter, oi_confirmed_momentum and perp_premium_zscore_mean_reversion candidates.",
+    "Record false-positive suppression cost and false-negative stress misses separately.",
+    "Do not enable standalone execution until replay shows stable cost-adjusted improvement across symbols and months."
+  ],
+  "risk_controls": [
+    "Default action is alert or down-rank, not trade entry.",
+    "Filter out stale mark/index data and single bad-print windows.",
+    "Do not compare mark/index values across exchanges until each venue's calculation and index constituents are documented.",
+    "Disable the signal during exchange maintenance, abnormal instrument status or manual data-quality uncertainty.",
+    "Keep all outputs research-only; no production config, live trading or auto-deployment."
+  ],
+  "candidate_files": [
+    "artifacts/strategies/mark_index_dislocation_alert/research_report.json",
+    "artifacts/strategies/mark_index_dislocation_alert/strategy_proposal.json",
+    "artifacts/strategies/mark_index_dislocation_alert/opportunity_report.json"
+  ]
+}

@@ -1,5 +1,43 @@
 # 策略研究日志
 
+## 2026-06-10：第二批策略挖掘 batch
+
+本轮新增 `artifacts/research_batches/2026-06-10-batch-01/candidates.json`，用于把继续挖掘的 10 个候选先沉淀为研究批次，而不是立即全部创建 issue 或 evaluator。
+
+### Batch 策略
+
+| 策略 | 主题 | 推荐状态 | 处理 |
+| --- | --- | --- | --- |
+| `mark_index_dislocation_alert` | `theme:market-structure` | `queued_for_artifact` | 已 artifact 化 |
+| `funding_squeeze_unwind_signal` | `theme:funding` | `queued_for_artifact` | 已 artifact 化 |
+| `realized_volatility_breakout_filter` | `theme:volatility` | `queued_for_artifact` | 已 artifact 化 |
+| `premium_index_compression_after_extreme` | `theme:funding` | `proposed` | 等 `premium_index_kline` 模型 |
+| `relative_strength_rotation_top_perps` | `theme:cross-sectional` | `proposed` | 等 cross-sectional universe 规则 |
+| `low_volatility_carry_regime_switch` | `theme:volatility` | `proposed` | 更适合作为 #1 扩展 |
+| `liquidation_cascade_reversal_alert` | `theme:stress` | `needs_human_review` | 先作为 stress alert |
+| `sector_perp_dispersion_mean_reversion` | `theme:cross-sectional` | `researched` | 暂不推进 |
+| `funding_interval_change_monitor` | `theme:exchange-mechanics` | `needs_human_review` | 更适合作为人工风控门禁 |
+| `delivery_basis_roll_down_filter` | `theme:basis` | `proposed` | 等 #2 数据阻塞解除 |
+
+### 新增 artifact
+
+- `artifacts/strategies/mark_index_dislocation_alert/research_report.json`
+- `artifacts/strategies/mark_index_dislocation_alert/strategy_proposal.json`
+- `artifacts/strategies/mark_index_dislocation_alert/opportunity_report.json`
+- `artifacts/strategies/funding_squeeze_unwind_signal/research_report.json`
+- `artifacts/strategies/funding_squeeze_unwind_signal/strategy_proposal.json`
+- `artifacts/strategies/funding_squeeze_unwind_signal/opportunity_report.json`
+- `artifacts/strategies/realized_volatility_breakout_filter/research_report.json`
+- `artifacts/strategies/realized_volatility_breakout_filter/strategy_proposal.json`
+- `artifacts/strategies/realized_volatility_breakout_filter/opportunity_report.json`
+
+### 状态结论
+
+- `mark_index_dislocation_alert` 和 `realized_volatility_breakout_filter` 更适合作为全局过滤器，优先验证是否能改善 #1、#3、#7 的 false positive 和 stress-window 表现。
+- `funding_squeeze_unwind_signal` 与 #1/#3 互补，用于识别拥挤 funding + OI 的 late-entry 风险，但不应直接做自动反向开仓。
+- 三个新增候选都保持 `strategy:blocked-data`，因为本地 data lake 仍没有目标窗口分区。
+- 下一步应先为三者生成 data collection plan，或把其中一个合并进现有 evaluator 的 fixture 过滤测试。
+
 ## 2026-06-09：第一批策略 issue
 
 本轮从公开资料和项目已有策略方向中筛选了 5 个 Crypto 策略候选，并创建为 GitHub Issue。当前目标不是形成投资建议，而是建立可持续的研究入口和验证队列。
@@ -754,3 +792,27 @@ python3 -m apps.collector.main instrument-assumption \
 ### 状态结论
 
 #2 继续保持 `strategy:blocked-data`。可先在人工确认下载和磁盘预算后执行 supported mark / fee / trade 命令；但进入真实 replay 前仍必须解决 dated future `instrument_metadata` 以及 `depth_volume` 的历史 orderbook/depth 覆盖。`fee-assumption` 仍只是回放假设，不代表官方或账户实际费率。
+
+## 2026-06-09：#7 Perp premium z-score mean reversion intake
+
+本轮在现有 `strategy:idea` / `strategy:proposed` 为空、已有候选全部卡在 data coverage 的情况下，新增 #7 `perp_premium_zscore_mean_reversion` 作为更轻量的数据需求候选。该方向使用单交易所 USDT perp 的 premium index / mark-index basis、funding、trade-derived candles 和 fee 假设，研究极端 premium z-score 回落后的分钟级到小时级均值回归信号。
+
+### 产物
+
+- `artifacts/strategies/perp_premium_zscore_mean_reversion/research_report.json`
+- `artifacts/strategies/perp_premium_zscore_mean_reversion/strategy_proposal.json`
+- `artifacts/strategies/perp_premium_zscore_mean_reversion/opportunity_report.json`
+- `artifacts/strategies/strategy_queue.json`
+
+### 工具验证结果
+
+- `plan_strategy_validation` readiness：`blocked_missing_data_model`。
+- 未支持需求：`premium_index_kline`，当前 MarketEvent / EventType 未建模。
+- 已有边界：`funding`、`mark_index_price`、`trades`、`fees`、`instrument_metadata`。
+- 可派生边界：`perp_candles` 可由 perp trades 聚合。
+- `rank_strategy_candidates` total_score：`67.00`。
+- `rank_strategy_candidates` recommended_status：`needs_human_review`。
+
+### 状态结论
+
+#7 标记为 `strategy:blocked-data`。它比 orderbook L2 策略更少历史盘口依赖，也比跨所策略更少执行复杂度，但必须先新增 `premium_index_kline` 数据模型、Binance connector 映射和 coverage checks，之后再补齐 funding、mark/index、trade-derived perp candles、fees 和 instrument metadata。该策略仅用于研究、告警和人工确认，不触发真实交易，不标记为 production-ready。

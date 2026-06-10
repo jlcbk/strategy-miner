@@ -1,0 +1,184 @@
+{
+  "kind": "research_batch",
+  "title": "Strategy mining batch 2026-06-10-01",
+  "created_by": "codex",
+  "created_at": "2026-06-10T00:00:00+00:00",
+  "source_repo": "jlcbk/strategy-miner",
+  "status_boundary": "Research candidates only; none are production-ready or live-trading candidates.",
+  "candidate_count": 10,
+  "selection_policy": {
+    "batch_goal": "Expand beyond the existing funding, basis, OI, orderbook and stablecoin backlog while keeping every candidate replayable with public market data or explicit manual gates.",
+    "promotion_limit": 3,
+    "promotion_rule": "Promote only candidates with clear data requirements, cost terms, failure modes and operator fit; leave the rest as research batch backlog."
+  },
+  "candidates": [
+    {
+      "strategy_name": "mark_index_dislocation_alert",
+      "theme": "theme:market-structure",
+      "hypothesis": "When perp mark price diverges from index price beyond a rolling threshold and then starts compressing, the window may identify liquidation stress, exchange-specific risk or a mean-reversion alert suitable for filtering carry and momentum signals.",
+      "required_data": ["mark_index_price", "perp_candles", "trades", "funding", "fees", "instrument_metadata"],
+      "scores": {
+        "verifiability": 5,
+        "data_availability": 4,
+        "capacity_potential": 3,
+        "cost_robustness": 4,
+        "overfit_resilience": 4,
+        "implementation_simplicity": 4
+      },
+      "recommended_status": "queued_for_artifact",
+      "rationale": "Uses mark/index data already modeled by the project and can initially operate as alert or risk filter instead of direct execution."
+    },
+    {
+      "strategy_name": "funding_squeeze_unwind_signal",
+      "theme": "theme:funding",
+      "hypothesis": "Extreme funding, rising OI and stalled price continuation can mark crowded perp positioning; subsequent funding normalization or OI drop may produce an unwind alert.",
+      "required_data": ["funding", "open_interest", "mark_price", "perp_candles", "trades", "fees"],
+      "scores": {
+        "verifiability": 4,
+        "data_availability": 4,
+        "capacity_potential": 3,
+        "cost_robustness": 3,
+        "overfit_resilience": 4,
+        "implementation_simplicity": 4
+      },
+      "recommended_status": "queued_for_artifact",
+      "rationale": "Reuses funding and OI concepts but tests a distinct crowded-unwind failure mode for existing carry and momentum strategies."
+    },
+    {
+      "strategy_name": "realized_volatility_breakout_filter",
+      "theme": "theme:volatility",
+      "hypothesis": "A transition from compressed realized volatility to expanding realized volatility can improve whether carry, basis or momentum candidates are enabled, disabled or downgraded.",
+      "required_data": ["spot_candles", "perp_candles", "trades", "mark_price", "fees"],
+      "scores": {
+        "verifiability": 5,
+        "data_availability": 4,
+        "capacity_potential": 3,
+        "cost_robustness": 4,
+        "overfit_resilience": 4,
+        "implementation_simplicity": 5
+      },
+      "recommended_status": "queued_for_artifact",
+      "rationale": "Useful as a portfolio-level filter and can be validated with trade-derived candles before adding new exchange-specific data models."
+    },
+    {
+      "strategy_name": "premium_index_compression_after_extreme",
+      "theme": "theme:funding",
+      "hypothesis": "After premium index reaches an extreme and stops expanding, short holding-period compression may help classify whether a perp premium z-score signal is actionable.",
+      "required_data": ["premium_index_kline", "funding", "mark_index_price", "perp_candles", "fees"],
+      "scores": {
+        "verifiability": 4,
+        "data_availability": 3,
+        "capacity_potential": 3,
+        "cost_robustness": 3,
+        "overfit_resilience": 4,
+        "implementation_simplicity": 3
+      },
+      "recommended_status": "proposed",
+      "rationale": "Good follow-on to #7, but blocked until premium_index_kline is modeled and collected."
+    },
+    {
+      "strategy_name": "relative_strength_rotation_top_perps",
+      "theme": "theme:cross-sectional",
+      "hypothesis": "Among top liquid perps, relative strength with funding and OI crowding filters may separate broad beta from idiosyncratic continuation.",
+      "required_data": ["perp_candles", "trades", "funding", "open_interest", "fees"],
+      "scores": {
+        "verifiability": 4,
+        "data_availability": 4,
+        "capacity_potential": 4,
+        "cost_robustness": 3,
+        "overfit_resilience": 3,
+        "implementation_simplicity": 3
+      },
+      "recommended_status": "proposed",
+      "rationale": "Useful but needs careful cross-sectional universe and rebalance cost controls."
+    },
+    {
+      "strategy_name": "low_volatility_carry_regime_switch",
+      "theme": "theme:volatility",
+      "hypothesis": "Funding carry candidates may perform better when realized volatility and mark/index dislocation are below regime thresholds, and should be disabled during stress transitions.",
+      "required_data": ["funding", "mark_index_price", "spot_candles", "perp_candles", "trades", "fees"],
+      "scores": {
+        "verifiability": 4,
+        "data_availability": 4,
+        "capacity_potential": 3,
+        "cost_robustness": 4,
+        "overfit_resilience": 4,
+        "implementation_simplicity": 4
+      },
+      "recommended_status": "proposed",
+      "rationale": "Likely better expressed as an extension of funding_carry_vol_filter after the first replay is complete."
+    },
+    {
+      "strategy_name": "liquidation_cascade_reversal_alert",
+      "theme": "theme:stress",
+      "hypothesis": "Large forced-move candles with high volume, OI contraction and mark/index dislocation may identify liquidation cascades that later mean revert.",
+      "required_data": ["perp_candles", "trades", "open_interest", "mark_index_price", "funding", "fees"],
+      "scores": {
+        "verifiability": 3,
+        "data_availability": 4,
+        "capacity_potential": 3,
+        "cost_robustness": 2,
+        "overfit_resilience": 3,
+        "implementation_simplicity": 3
+      },
+      "recommended_status": "needs_human_review",
+      "rationale": "Stress-window slippage and adverse selection are material; keep as alert until execution quality is quantified."
+    },
+    {
+      "strategy_name": "sector_perp_dispersion_mean_reversion",
+      "theme": "theme:cross-sectional",
+      "hypothesis": "Within related crypto sectors, extreme dispersion between liquid perp returns may partially revert when the move is not confirmed by volume and OI.",
+      "required_data": ["perp_candles", "trades", "open_interest", "funding", "fees"],
+      "scores": {
+        "verifiability": 3,
+        "data_availability": 3,
+        "capacity_potential": 3,
+        "cost_robustness": 2,
+        "overfit_resilience": 2,
+        "implementation_simplicity": 2
+      },
+      "recommended_status": "researched",
+      "rationale": "Sector taxonomy and universe drift make it easy to overfit; keep for later."
+    },
+    {
+      "strategy_name": "funding_interval_change_monitor",
+      "theme": "theme:exchange-mechanics",
+      "hypothesis": "Exchange changes to funding interval, cap, floor or calculation method can create temporary strategy invalidation windows that should suppress carry and unwind signals.",
+      "required_data": ["funding", "instrument_metadata", "exchange_announcement_manual_review"],
+      "scores": {
+        "verifiability": 3,
+        "data_availability": 2,
+        "capacity_potential": 2,
+        "cost_robustness": 4,
+        "overfit_resilience": 4,
+        "implementation_simplicity": 2
+      },
+      "recommended_status": "needs_human_review",
+      "rationale": "Better as manual risk gate than alpha strategy."
+    },
+    {
+      "strategy_name": "delivery_basis_roll_down_filter",
+      "theme": "theme:basis",
+      "hypothesis": "Dated futures basis may roll down nonlinearly near delivery; a days-to-expiry and liquidity filter may improve quarterly_basis_convergence exits.",
+      "required_data": ["future_mark_price", "spot_candles", "instrument_metadata", "fees", "depth_volume"],
+      "scores": {
+        "verifiability": 4,
+        "data_availability": 3,
+        "capacity_potential": 3,
+        "cost_robustness": 3,
+        "overfit_resilience": 3,
+        "implementation_simplicity": 3
+      },
+      "recommended_status": "proposed",
+      "rationale": "Likely an extension of quarterly_basis_convergence after future metadata and depth blockers are resolved."
+    }
+  ],
+  "accepted_for_artifact": [
+    "mark_index_dislocation_alert",
+    "funding_squeeze_unwind_signal",
+    "realized_volatility_breakout_filter"
+  ],
+  "rejected_for_now": [
+    "sector_perp_dispersion_mean_reversion"
+  ]
+}

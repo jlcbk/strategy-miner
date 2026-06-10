@@ -1,0 +1,69 @@
+{
+  "kind": "strategy_proposal",
+  "title": "Perp premium z-score mean reversion filter",
+  "created_by": "codex",
+  "created_at": "2026-06-09T00:00:00+00:00",
+  "strategy_name": "perp_premium_zscore_mean_reversion",
+  "hypothesis": "当高流动性 perpetual 的 premium index 或 mark/index basis 相对滚动窗口进入极端分位后，如果 funding 与拥挤方向一致但 premium 不再扩张，且波动率、成交量和成本过滤通过，则后续 premium/basis 均值回归可能形成适合分钟级到小时级回放验证的候选信号。",
+  "evaluator_contract": {
+    "inputs": [
+      "premium index kline or mark/index-derived basis by exchange, symbol and interval",
+      "funding rates aligned to signal windows",
+      "perp candles or trade-derived bars for realized volatility and trend filters",
+      "trade volume or trade count for liquidity filters",
+      "fee schedule and instrument metadata"
+    ],
+    "outputs": [
+      "symbol",
+      "exchange",
+      "premium_zscore",
+      "basis_reversion_candidate_side",
+      "estimated net edge after fees, slippage and funding",
+      "volatility and liquidity risk flags",
+      "operator suitability flags"
+    ],
+    "entry_rules": [
+      "premium_zscore breaches configured positive or negative threshold",
+      "premium_zscore shows rollover or recovery instead of continued expansion",
+      "funding confirms crowded direction but estimated funding paid remains inside cost budget",
+      "realized volatility is below no-trade threshold or has reverted from an extreme window",
+      "volume or trade count supports target notional without high leverage"
+    ],
+    "exit_rules": [
+      "premium_zscore reverts to neutral band",
+      "max holding time expires",
+      "stop threshold is breached by adverse basis expansion",
+      "funding or cost estimate makes net edge non-positive",
+      "manual review rejects current market conditions"
+    ]
+  },
+  "data_requirements": [
+    "premium_index_kline",
+    "funding",
+    "mark_index_price",
+    "perp_candles",
+    "trades",
+    "fees",
+    "instrument_metadata"
+  ],
+  "test_plan": [
+    "先用 Binance BTCUSDT、ETHUSDT、SOLUSDT USDT perp 的 1m、5m 和 15m 窗口做离线回放。",
+    "比较 premium_index_kline 与 mark/index-derived basis 两种价格源的信号一致性。",
+    "按滚动 1d、3d、7d lookback 计算 z-score，并做 walk-forward 阈值稳定性测试。",
+    "扣除 maker/taker fee、保守滑点和持仓期间 funding，检查 net edge 是否仍为正。",
+    "用成交量或 trade count 过滤低流动性窗口，并限制最大持仓时间和连续触发次数。",
+    "跨月份、跨 BTC/ETH/SOL 和后续跨 OKX/Bybit/Bitget 检查是否只拟合单一事件。"
+  ],
+  "risk_controls": [
+    "不使用高杠杆；研究评分按 1x 名义风险和保守保证金缓冲评估。",
+    "设置 no-trade volatility gate，极端波动和挤仓期间不生成候选。",
+    "设置 max holding time、stop threshold 和 cooldown，避免连续逆势加仓。",
+    "只有 net edge 覆盖手续费、滑点和预期 funding 支付时才输出候选。",
+    "只允许离线研究、告警和人工确认；不标记为 production-ready，不触发真实交易。"
+  ],
+  "candidate_files": [
+    "artifacts/strategies/perp_premium_zscore_mean_reversion/research_report.json",
+    "artifacts/strategies/perp_premium_zscore_mean_reversion/strategy_proposal.json",
+    "artifacts/strategies/perp_premium_zscore_mean_reversion/opportunity_report.json"
+  ]
+}

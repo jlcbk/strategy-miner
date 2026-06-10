@@ -1,0 +1,47 @@
+{
+  "kind": "research_report",
+  "title": "Funding squeeze unwind signal research report",
+  "created_by": "codex",
+  "created_at": "2026-06-10T00:00:00+00:00",
+  "summary": "Extreme funding combined with rising open interest can indicate crowded perpetual positioning. If price continuation stalls while funding remains expensive and OI later contracts, the window may identify a squeeze-unwind alert. The strategy should begin as a risk filter for carry and momentum systems because crowded positioning can reverse violently.",
+  "source_urls": [
+    "https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Get-Funding-Rate-History",
+    "https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Open-Interest-Statistics",
+    "https://bybit-exchange.github.io/docs/v5/market/open-interest"
+  ],
+  "claims": [
+    "Funding rate, open interest and mark price can be aligned into a repeatable crowded-positioning panel.",
+    "A squeeze unwind should require both crowding evidence and loss of price continuation, not just extreme funding.",
+    "The first version is more suitable for alerting and suppressing late entries than for automatic contrarian execution."
+  ],
+  "formulas": [
+    "funding_extreme = abs(funding_rate) >= rolling_percentile(abs(funding_rate), p)",
+    "crowding_score = zscore(abs(funding_rate)) + zscore(oi_change_pct) - zscore(abs(price_continuation_bps))",
+    "unwind_flag = funding_extreme and oi_change_pct turns negative after price continuation stalls"
+  ],
+  "cost_items": [
+    "Taker fee and slippage if converted from alert to entry.",
+    "Funding paid while waiting for unwind confirmation.",
+    "Opportunity cost from blocking profitable trend continuation trades.",
+    "Higher liquidation and gap risk during crowded stress windows."
+  ],
+  "failure_modes": [
+    "Extreme funding persists longer than the holding budget and trend continues.",
+    "OI drops because positions close after the move is already over.",
+    "Funding and OI venue definitions differ across exchanges and cannot be mixed.",
+    "Contrarian entries during squeeze windows suffer adverse selection and high slippage."
+  ],
+  "required_data": [
+    "funding",
+    "open_interest",
+    "mark_price",
+    "perp_candles",
+    "trades",
+    "fees"
+  ],
+  "evidence_notes": [
+    "Operator fit: medium-high as an alert and late-entry filter; medium-low as a standalone contrarian trade.",
+    "Venue boundary: each exchange's OI contract definition and sampling interval must be fixed before cross-venue comparison.",
+    "Safety boundary: no high leverage, no automatic short squeeze or long squeeze entries, and no production-ready label before replay."
+  ]
+}

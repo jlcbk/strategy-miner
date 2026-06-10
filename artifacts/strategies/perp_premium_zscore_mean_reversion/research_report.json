@@ -1,0 +1,57 @@
+{
+  "kind": "research_report",
+  "title": "Perp premium z-score mean reversion research report",
+  "created_by": "codex",
+  "created_at": "2026-06-09T00:00:00+00:00",
+  "summary": "当高流动性 perpetual 的 premium index 或 mark/index basis 偏离近期分布极端区间后，如果 funding 与拥挤方向一致但不再继续扩张，且短期波动率和流动性过滤通过，则 premium/basis 后续回落可能形成分钟级到小时级均值回归候选。该方向只用于离线研究、告警和人工确认，不提供投资建议，不触发真实交易。",
+  "source_urls": [
+    "https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Premium-Index-Kline-Data",
+    "https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Mark-Price",
+    "https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/rest-api/Get-Funding-Rate-History"
+  ],
+  "claims": [
+    "Perp premium index 和 mark/index basis 可以作为 perp 相对指数价格拥挤程度的公开代理变量。",
+    "极端 premium/basis 偏离可能在 funding 支付、套利资金介入或风险敞口收缩后回落，但该假设必须通过跨品种、跨月份和成本扣除验证。",
+    "相比历史 orderbook imbalance，该策略对 L2 历史盘口依赖较低；相比跨所 funding dispersion，它不需要复杂跨所转账、多账户库存或同步保证金管理。",
+    "该策略更适合作为信号过滤器或人工确认候选，而不是独立高杠杆逆势系统。",
+    "如果 premium z-score 需要在秒级反转窗口捕捉，或必须连续逆势加仓，策略应降级或拒绝。"
+  ],
+  "formulas": [
+    "basis = perp_mark_price / index_price - 1",
+    "premium_zscore = (premium_or_basis - rolling_mean(premium_or_basis, lookback)) / rolling_std(premium_or_basis, lookback)",
+    "entry_short_filter = premium_zscore >= positive_threshold and premium_zscore rolls over and funding_rate >= funding_floor",
+    "entry_long_filter = premium_zscore <= negative_threshold and premium_zscore recovers and funding_rate <= funding_ceiling",
+    "net_edge_bps = expected_basis_reversion_bps - taker_or_maker_fee_bps - slippage_bps - expected_funding_paid_bps"
+  ],
+  "cost_items": [
+    "Perp maker/taker 手续费",
+    "入场和平仓滑点",
+    "持仓期间可能支付的 funding",
+    "极端波动下 stop 或 max holding time 触发成本",
+    "阈值频繁触发导致的过度交易成本"
+  ],
+  "failure_modes": [
+    "强趋势或挤仓行情中 premium/basis 继续扩张，z-score 均值回归信号连续失效。",
+    "Funding 与 premium 同向拥挤持续时间超出持仓窗口，持仓期间支付 funding 且价格继续不利移动。",
+    "历史 premium index kline 或 mark/index 数据口径与交易所实时风控价格不一致，导致回放高估。",
+    "低流动性窗口中名义均值回归幅度无法覆盖手续费和滑点。",
+    "参数过度拟合单一币种、单一月份或单一极端行情，跨交易所复验失效。",
+    "需要高杠杆、连续盯盘或快速手工干预时，不符合当前 operator profile。"
+  ],
+  "required_data": [
+    "premium_index_kline",
+    "funding",
+    "mark_index_price",
+    "perp_candles",
+    "trades",
+    "fees",
+    "instrument_metadata"
+  ],
+  "evidence_notes": [
+    "Operator fit: 适合小到中等资金先做模拟；持仓周期分钟级到小时级；不应依赖极低延迟；可半自动扫描和人工确认。",
+    "Market scope: 初期只研究 Binance BTCUSDT、ETHUSDT、SOLUSDT USDT perp；OKX、Bybit、Bitget 作为后续稳健性复验。",
+    "Data status: funding、mark/index、trade、fee 和 instrument 已有模型边界；premium_index_kline 尚未作为 MarketEvent / EventType 建模，因此保持 blocked-data。",
+    "Execution boundary: 研究阶段只输出候选和风险过滤结果；不写生产交易配置，不触发下单，不标记为 production-ready。",
+    "Priority: 数据需求低于 orderbook L2 策略，执行复杂度低于跨所策略，但均值回归失效和参数过拟合风险较高。"
+  ]
+}

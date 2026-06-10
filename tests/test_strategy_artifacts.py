@@ -7,14 +7,27 @@ ARTIFACT_ROOTS = {
         "artifacts/strategies/cross_exchange_funding_dispersion"
     ),
     "funding_carry_vol_filter": Path("artifacts/strategies/funding_carry_vol_filter"),
+    "funding_squeeze_unwind_signal": Path(
+        "artifacts/strategies/funding_squeeze_unwind_signal"
+    ),
+    "mark_index_dislocation_alert": Path(
+        "artifacts/strategies/mark_index_dislocation_alert"
+    ),
     "oi_confirmed_momentum": Path("artifacts/strategies/oi_confirmed_momentum"),
     "orderbook_imbalance_filter": Path("artifacts/strategies/orderbook_imbalance_filter"),
+    "perp_premium_zscore_mean_reversion": Path(
+        "artifacts/strategies/perp_premium_zscore_mean_reversion"
+    ),
     "quarterly_basis_convergence": Path("artifacts/strategies/quarterly_basis_convergence"),
+    "realized_volatility_breakout_filter": Path(
+        "artifacts/strategies/realized_volatility_breakout_filter"
+    ),
     "stablecoin_depeg_mean_reversion": Path(
         "artifacts/strategies/stablecoin_depeg_mean_reversion"
     ),
 }
 STRATEGY_QUEUE_PATH = Path("artifacts/strategies/strategy_queue.json")
+RESEARCH_BATCH_PATH = Path("artifacts/research_batches/2026-06-10-batch-01/candidates.json")
 MANUAL_GATE_SCHEMA_PATH = Path("schemas/manual_gate_checklist.schema.json")
 DATA_COLLECTION_PLAN_SCHEMA_PATH = Path("schemas/data_collection_plan.schema.json")
 METADATA_RESOLUTION_SCHEMA_PATH = Path("schemas/metadata_resolution_plan.schema.json")
@@ -697,6 +710,145 @@ def test_strategy_queue_matches_artifact_inventory() -> None:
     assert stablecoin["coverage"]["manual_requirements"] == [
         "manual_stablecoin_status_checklist"
     ]
+
+    premium = [
+        item for item in strategies
+        if item["strategy_name"] == "perp_premium_zscore_mean_reversion"
+    ][0]
+    assert premium["coverage"]["unsupported_requirements"] == [
+        "premium_index_kline"
+    ]
+    assert premium["recommended_status"] == "needs_human_review"
+
+    mark_index = [
+        item for item in strategies
+        if item["strategy_name"] == "mark_index_dislocation_alert"
+    ][0]
+    assert mark_index["recommended_status"] == "proposed"
+    assert "mark/index" in mark_index["next_action"]
+
+    volatility = [
+        item for item in strategies
+        if item["strategy_name"] == "realized_volatility_breakout_filter"
+    ][0]
+    assert volatility["funnel_score"] == "83.00"
+    assert "missed opportunity" in volatility["next_action"]
+
+
+def test_perp_premium_zscore_artifacts_are_machine_readable() -> None:
+    report, proposal = _read_artifacts("perp_premium_zscore_mean_reversion")
+    opportunity_report = _read_json(
+        ARTIFACT_ROOTS["perp_premium_zscore_mean_reversion"] / "opportunity_report.json"
+    )
+
+    assert report["kind"] == "research_report"
+    assert proposal["kind"] == "strategy_proposal"
+    assert opportunity_report["kind"] == "opportunity_report"
+    assert proposal["strategy_name"] == "perp_premium_zscore_mean_reversion"
+    assert proposal["data_requirements"] == report["required_data"]
+    assert "premium_index_kline" in proposal["data_requirements"]
+    assert opportunity_report["opportunity_count"] == 0
+    assert any("Operator fit" in note for note in report["evidence_notes"])
+
+
+def test_research_batch_promotes_three_candidates_to_artifacts() -> None:
+    batch = _read_json(RESEARCH_BATCH_PATH)
+
+    assert batch["kind"] == "research_batch"
+    assert batch["candidate_count"] == 10
+    assert batch["selection_policy"]["promotion_limit"] == 3
+    assert batch["accepted_for_artifact"] == [
+        "mark_index_dislocation_alert",
+        "funding_squeeze_unwind_signal",
+        "realized_volatility_breakout_filter",
+    ]
+    assert len(batch["candidates"]) == 10
+    assert {
+        candidate["strategy_name"]
+        for candidate in batch["candidates"]
+        if candidate["recommended_status"] == "queued_for_artifact"
+    } == set(batch["accepted_for_artifact"])
+
+    for strategy_name in batch["accepted_for_artifact"]:
+        root = ARTIFACT_ROOTS[strategy_name]
+        assert (root / "research_report.json").exists()
+        assert (root / "strategy_proposal.json").exists()
+        assert (root / "opportunity_report.json").exists()
+
+
+def test_new_batch_strategy_artifacts_are_machine_readable() -> None:
+    for strategy_name in (
+        "mark_index_dislocation_alert",
+        "funding_squeeze_unwind_signal",
+        "realized_volatility_breakout_filter",
+    ):
+        report, proposal = _read_artifacts(strategy_name)
+        opportunity_report = _read_json(ARTIFACT_ROOTS[strategy_name] / "opportunity_report.json")
+
+        assert report["kind"] == "research_report"
+        assert proposal["kind"] == "strategy_proposal"
+        assert opportunity_report["kind"] == "opportunity_report"
+        assert proposal["strategy_name"] == strategy_name
+        assert opportunity_report["strategy_name"] == strategy_name
+        assert proposal["data_requirements"] == report["required_data"]
+        assert opportunity_report["opportunity_count"] == 0
+        assert opportunity_report["opportunities"] == []
+        assert any("Operator fit" in note for note in report["evidence_notes"])
+        assert any("Safety boundary" in note for note in report["evidence_notes"])
+        assert (
+            f"artifacts/strategies/{strategy_name}/opportunity_report.json"
+            in proposal["candidate_files"]
+        )
+
+
+def test_new_batch_strategy_artifacts_match_supported_schema_fields() -> None:
+    for strategy_name in (
+        "mark_index_dislocation_alert",
+        "funding_squeeze_unwind_signal",
+        "realized_volatility_breakout_filter",
+    ):
+        report, proposal = _read_artifacts(strategy_name)
+        opportunity_report = _read_json(ARTIFACT_ROOTS[strategy_name] / "opportunity_report.json")
+
+        assert set(report) == {
+            "kind",
+            "title",
+            "created_by",
+            "created_at",
+            "summary",
+            "source_urls",
+            "claims",
+            "formulas",
+            "cost_items",
+            "failure_modes",
+            "required_data",
+            "evidence_notes",
+        }
+        assert set(proposal) == {
+            "kind",
+            "title",
+            "created_by",
+            "created_at",
+            "strategy_name",
+            "hypothesis",
+            "evaluator_contract",
+            "data_requirements",
+            "test_plan",
+            "risk_controls",
+            "candidate_files",
+        }
+        assert set(opportunity_report) == {
+            "kind",
+            "title",
+            "created_by",
+            "created_at",
+            "strategy_name",
+            "strategy_version",
+            "data_window",
+            "opportunity_count",
+            "opportunities",
+            "result_hash",
+        }
 
 
 def _read_artifacts(strategy_name: str) -> tuple[dict, dict]:
